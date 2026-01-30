@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.I.P. | Financial Suite</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <i class="fas fa-layer-group"></i> S.I.P. SUITE
+        </div>
+        
+        <nav>
+            <div class="nav-item active" onclick="switchView('dashboard', this)">
+                <i class="fas fa-chart-pie"></i> Panorama
+            </div>
+            <div class="nav-item" onclick="switchView('monthly', this)">
+                <i class="fas fa-calendar-check"></i> Gestão Mensal
+            </div>
+            <div class="nav-item" onclick="switchView('goals', this)">
+                <i class="fas fa-bullseye"></i> Metas & Sonhos
+            </div>
+
+            <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                <div class="nav-item" onclick="exportData()">
+                    <i class="fas fa-file-export"></i> Exportar JSON
+                </div>
+                <div class="nav-item" onclick="triggerImport()">
+                    <i class="fas fa-file-import"></i> Importar JSON
+                </div>
+                <div class="nav-item" style="color: var(--danger);" onclick="resetSystem()">
+                    <i class="fas fa-power-off"></i> Reset Data
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <header>
+            <h2 id="page-title">VISÃO GERAL</h2>
+            
+            <div id="month-control" class="select-wrapper" style="display: none;">
+                <select id="month-select" onchange="renderMonthly()">
+                    <option value="janeiro">JANEIRO</option>
+                    <option value="fevereiro">FEVEREIRO</option>
+                    <option value="marco">MARÇO</option>
+                    <option value="abril">ABRIL</option>
+                    <option value="maio">MAIO</option>
+                    <option value="junho">JUNHO</option>
+                    <option value="julho">JULHO</option>
+                    <option value="agosto">AGOSTO</option>
+                    <option value="setembro">SETEMBRO</option>
+                    <option value="outubro">OUTUBRO</option>
+                    <option value="novembro">NOVEMBRO</option>
+                    <option value="dezembro">DEZEMBRO</option>
+                </select>
+            </div>
+        </header>
+
+        <section id="view-dashboard" class="view-section active">
+            <div class="kpi-grid">
+                <div class="card accent">
+                    <div class="kpi-label">Saldo em Caixa</div>
+                    <div class="kpi-val" id="kpi-total-balance" style="color: var(--primary);">R$ 0,00</div>
+                </div>
+                <div class="card green">
+                    <div class="kpi-label">Receita Anual</div>
+                    <div class="kpi-val" id="kpi-total-inc">R$ 0,00</div>
+                </div>
+                <div class="card red">
+                    <div class="kpi-label">Despesa Anual</div>
+                    <div class="kpi-val" id="kpi-total-exp">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <div class="kpi-label">Índice de Poupança</div>
+                    <div class="kpi-val" id="kpi-rate">0%</div>
+                </div>
+            </div>
+
+            <div class="panel" style="padding: 24px; height: 400px; position: relative;">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </section>
+
+        <section id="view-monthly" class="view-section">
+            <div class="grid-split" style="margin-bottom: 24px;">
+                <div class="card accent" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+                    <div>
+                        <div class="kpi-label">Saldo de <span id="month-name-display">...</span></div>
+                        <div class="kpi-val" id="m-balance">R$ 0,00</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9rem; color: var(--success);">+ <span id="m-inc">0</span></div>
+                        <div style="font-size: 0.9rem; color: var(--danger);">- <span id="m-exp">0</span></div>
+                    </div>
+                </div>
+                <div class="card" style="display: flex; align-items: center; justify-content: center;">
+                    <canvas id="catChart" style="max-height: 100px;"></canvas>
+                </div>
+            </div>
+
+            <div class="grid-split">
+                <div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Despesas Fixas</span>
+                            <button class="btn-icon" onclick="openTransactionModal('fixed')"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <table id="table-fixed">
+                            <thead>
+                                <tr>
+                                    <th width="10%">Status</th>
+                                    <th>Descrição</th>
+                                    <th width="20%">Valor</th>
+                                    <th width="10%">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-fixed"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="panel-title">Gastos Variáveis</span>
+                                <select id="filter-category" class="input-clean" style="width: 150px; font-size: 0.80rem; border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;" onchange="applyFilter(this.value)">
+                                    <option value="all">Todas Categorias</option>
+                                </select>
+                            </div>
+                            <button class="btn-icon" onclick="openTransactionModal('variable')"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <table id="table-variable">
+                            <thead>
+                                <tr>
+                                    <th width="20%" style="cursor: pointer;" onclick="applySort('date')">Data <i class="fas fa-sort sort-icon"></i></th>
+                                    <th style="cursor: pointer;" onclick="applySort('desc')">Descrição <i class="fas fa-sort sort-icon"></i></th>
+                                    <th style="cursor: pointer;" onclick="applySort('cat')">Categoria <i class="fas fa-sort sort-icon"></i></th>
+                                    <th width="20%" style="cursor: pointer;" onclick="applySort('val')">Valor <i class="fas fa-sort sort-icon"></i></th>
+                                    <th width="10%">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-variable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title" style="color: var(--success);">Entradas</span>
+                            <button class="btn-icon" onclick="openTransactionModal('income')"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <table id="table-income">
+                            <thead>
+                                <tr>
+                                    <th>Fonte</th>
+                                    <th>Valor</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-income"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-goals" class="view-section">
+            <div class="panel-header" style="margin-bottom: 20px; border-bottom: none;">
+                <div>
+                    <h2 style="margin-bottom: 5px;">Meus Objetivos</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Acompanhe o progresso dos seus sonhos</p>
+                </div>
+                <button class="btn-icon" style="width: auto; padding: 0 15px; background: var(--primary); color: #0f172a; font-weight: bold;" onclick="openGoalModal()">
+                    <i class="fas fa-plus"></i> Nova Meta
+                </button>
+            </div>
+            
+            <div id="goals-container" class="goals-grid"></div>
+        </section>
+
+    </main>
+
+    <div id="goal-modal-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title" style="margin-bottom: 20px;">Nova Meta</h3>
+            <input type="hidden" id="goal-id">
+            <div class="form-group">
+                <label>Nome do Objetivo</label>
+                <input type="text" id="goal-name" class="input-clean" placeholder="Ex: Carro Novo" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+            <div class="form-group">
+                <label>Valor Total (Alvo)</label>
+                <input type="number" id="goal-target" class="input-clean" placeholder="0,00" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+            <div class="form-group">
+                <label>Valor Já Guardado</label>
+                <input type="number" id="goal-current" class="input-clean" placeholder="0,00" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+            <div class="form-group">
+                <label>Data Limite (Opcional)</label>
+                <input type="date" id="goal-date" class="input-clean" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+            <div class="form-group">
+                <label>Ícone</label>
+                <div class="icon-selector">
+                    <div class="icon-option active" onclick="selectIcon(this, 'fa-bullseye')"><i class="fas fa-bullseye"></i></div>
+                    <div class="icon-option" onclick="selectIcon(this, 'fa-car')"><i class="fas fa-car"></i></div>
+                    <div class="icon-option" onclick="selectIcon(this, 'fa-home')"><i class="fas fa-home"></i></div>
+                    <div class="icon-option" onclick="selectIcon(this, 'fa-plane')"><i class="fas fa-plane"></i></div>
+                    <div class="icon-option" onclick="selectIcon(this, 'fa-laptop')"><i class="fas fa-laptop"></i></div>
+                    <div class="icon-option" onclick="selectIcon(this, 'fa-graduation-cap')"><i class="fas fa-graduation-cap"></i></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveGoalForm()" class="btn-save">Salvar</button>
+                <button onclick="closeGoalModal()" class="btn-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="trans-modal-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="trans-modal-title" style="margin-bottom: 20px;">Nova Transação</h3>
+            
+            <input type="hidden" id="trans-id">
+            <input type="hidden" id="trans-type"> <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" id="trans-desc" class="input-clean" placeholder="Ex: Supermercado" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+
+            <div class="form-group">
+                <label>Valor (R$)</label>
+                <input type="number" id="trans-val" class="input-clean" placeholder="0,00" step="0.01" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+
+            <div class="form-group" id="field-date" style="display:none;">
+                <label>Data</label>
+                <input type="date" id="trans-date" class="input-clean" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+            </div>
+
+            <div class="form-group" id="field-cat" style="display:none;">
+                <label>Categoria</label>
+                <input type="text" id="trans-cat" class="input-clean" list="cats-list" placeholder="Ex: Alimentação" style="border-bottom: 1px solid #334155; padding: 10px 0;">
+                <datalist id="cats-list">
+                    <option value="Alimentação">
+                    <option value="Transporte">
+                    <option value="Lazer">
+                    <option value="Saúde">
+                    <option value="Educação">
+                </datalist>
+            </div>
+
+            <div class="form-group" id="field-paid" style="display:none;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="trans-paid" style="width:16px; height:16px;">
+                    Já foi pago?
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveTransactionForm()" class="btn-save">Salvar</button>
+                <button onclick="closeTransactionModal()" class="btn-cancel">Cancelar</button>
+            </div>
+        </div>
+
+        <div class="form-group" id="field-paid" style="display:none;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="trans-paid" style="width:16px; height:16px;">
+                    Já foi pago?
+                </label>
+            </div>
+
+            <div class="form-group" id="field-months" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="margin:0;">Repetir em quais meses?</label>
+                    <br>
+                    <button type="button" onclick="toggleAllMonths()" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.8rem;"> Marcar Todos</button>
+                </div>
+                
+                <div class="month-grid">
+                    <label class="month-check"><input type="checkbox" value="janeiro"> JAN</label>
+                    <label class="month-check"><input type="checkbox" value="fevereiro"> FEV</label>
+                    <label class="month-check"><input type="checkbox" value="marco"> MAR</label>
+                    <label class="month-check"><input type="checkbox" value="abril"> ABR</label>
+                    <label class="month-check"><input type="checkbox" value="maio"> MAI</label>
+                    <label class="month-check"><input type="checkbox" value="junho"> JUN</label>
+                    <label class="month-check"><input type="checkbox" value="julho"> JUL</label>
+                    <label class="month-check"><input type="checkbox" value="agosto"> AGO</label>
+                    <label class="month-check"><input type="checkbox" value="setembro"> SET</label>
+                    <label class="month-check"><input type="checkbox" value="outubro"> OUT</label>
+                    <label class="month-check"><input type="checkbox" value="novembro"> NOV</label>
+                    <label class="month-check"><input type="checkbox" value="dezembro"> DEZ</label>
+                </div>
+            </div>
+    </div>
+
+    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="handleImport(this)">
+    <div id="toast"><i class="fas fa-check-circle" style="color: var(--success);"></i> Dados Salvos</div>
+    <script src="script.js"></script>
+</body>
+</html>
