@@ -346,10 +346,24 @@ select option {
 }
 .modal-overlay.open { display: flex; animation: fadeIn 0.2s; }
 
+/* Aumentamos a largura máxima do modal para caber tudo confortavelmente */
 .modal-box {
-    background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
-    padding: 30px; border-radius: 16px; width: 400px;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 16px;
+    width: 90%; /* Responsivo mobile */
+    max-width: 550px; /* Mais largo que antes (era 400px) */
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+/* Caixa visual para agrupar a seleção de meses */
+.recurrence-box {
+    background: rgba(0, 0, 0, 0.2); /* Fundo mais escuro para separar */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px;
 }
 
 .form-group { margin-bottom: 20px; }
@@ -393,39 +407,263 @@ select option {
 }
 .btn-cancel:hover { background: rgba(255,255,255,0.05); }
 
-/* --- MONTH SELECTOR GRID --- */
+/* Grid agora com 6 colunas (2 linhas de meses) */
 .month-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 colunas */
-    gap: 8px;
+    grid-template-columns: repeat(6, 1fr); /* 6 meses por linha */
+    gap: 8px; /* Espacinho entre botões */
+    margin-top: 10px;
 }
 
 .month-check {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    background: rgba(255,255,255,0.05);
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: 0.2s;
+    text-align: center;
+    padding: 8px 2px; /* Altura compacta */
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.7rem; /* Fonte levemente menor para caber */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.01s ease;
+    user-select: none;
 }
 
 .month-check:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* Quando o input dentro estiver checado (truque visual) */
+/* Estado Selecionado */
 .month-check:has(input:checked) {
-    background: rgba(251, 191, 36, 0.15);
-    color: var(--primary);
-    border-color: rgba(251, 191, 36, 0.3);
-    font-weight: bold;
+    background: var(--primary); /* Fundo Dourado Cheio */
+    color: #0f172a; /* Texto Escuro (contraste) */
+    box-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+    border-color: var(--primary);
 }
 
-.month-check input {
-    display: none; /* Esconde a caixinha feia padrão */
+.month-check input { display: none; }
+
+/* --- CATEGORY CHIPS (ETIQUETAS) --- */
+.category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Quando selecionado (borda dourada) */
+.chip.active {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.chip i { font-size: 0.7rem; }
+
+/* --- MOBILE NAVIGATION & RESPONSIVENESS --- */
+.mobile-nav {
+    display: none; /* Escondido no PC */
+}
+
+/* Regras para telas menores que 768px (Celulares/Tablets pequenos) */
+@media (max-width: 768px) {
+    
+    /* 1. Layout Geral */
+    body {
+        flex-direction: column;
+    }
+
+    /* Esconde Sidebar Lateral */
+    .sidebar {
+        display: none; 
+    }
+
+    /* Ajusta Main Area */
+    .main {
+        width: 100%;
+        padding-bottom: 80px; /* Espaço para o menu inferior não cobrir conteúdo */
+    }
+
+    header {
+        padding: 0 20px;
+        height: 70px;
+    }
+
+    h2 { font-size: 1.2rem; }
+
+    /* 2. Menu Inferior (App Style) */
+    .mobile-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; width: 100%;
+        height: 70px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: var(--border);
+        justify-content: space-around;
+        align-items: center;
+        z-index: 999;
+        padding-bottom: env(safe-area-inset-bottom); /* Ajuste para iPhone X+ */
+    }
+
+    .mobile-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        gap: 4px;
+        width: 60px;
+        cursor: pointer;
+    }
+
+    .mobile-item i { font-size: 1.2rem; margin-bottom: 2px; }
+    .mobile-item.active { color: var(--primary); }
+
+    /* Botão Flutuante Central */
+    .mobile-fab {
+        background: var(--primary);
+        color: #0f172a;
+        width: 50px; height: 50px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 0 15px var(--primary-glow);
+        transform: translateY(-20px); /* Sobe um pouco */
+        border: 4px solid var(--bg-body); /* Borda para separar do fundo */
+    }
+
+    /* 3. Grid Adjustments (Empilhar tudo) */
+    .kpi-grid {
+        grid-template-columns: 1fr; /* 1 coluna */
+        gap: 15px;
+    }
+    
+    .grid-split {
+        grid-template-columns: 1fr; /* 1 coluna */
+    }
+
+    .panel {
+        overflow-x: auto; /* Permite rolagem horizontal em tabelas */
+    }
+
+    /* 4. Ajustes de Modal para Mobile */
+    .modal-box {
+        width: 95%;
+        padding: 20px;
+        max-height: 90vh; /* Não estourar a altura */
+        overflow-y: auto; /* Scroll dentro do modal se precisar */
+    }
+
+    .month-grid {
+        grid-template-columns: repeat(4, 1fr); /* Reduz para 4 colunas no mobile p/ caber */
+    }
+
+    /* Esconde colunas menos importantes das tabelas no mobile para caber */
+    #table-variable th:nth-child(3), #table-variable td:nth-child(3) { 
+        display: none; /* Esconde Categoria na lista (ocupa muito espaço) */
+    }
+}
+
+/* --- TRAVA GERAL DE SCROLL (GLOBAL) --- */
+html, body {
+    overflow-x: hidden; /* Proíbe o usuário de arrastar para o lado */
+    width: 100%;
+    position: relative;
+}
+
+/* --- AJUSTES MOBILE (FINAL) --- */
+@media (max-width: 768px) {
+    
+    /* 1. Ajuste do Container Principal */
+    .main {
+        width: 100vw; /* Garante que usa 100% da viewport */
+        padding: 0;
+        padding-bottom: 80px; /* Espaço para o menu inferior */
+        overflow-x: hidden;
+    }
+
+    /* 2. Compactação Extrema das Tabelas */
+    .panel {
+        padding: 10px 5px; /* Quase sem borda interna */
+        margin: 10px;
+        border-radius: 8px;
+    }
+
+    table {
+        table-layout: fixed; /* OBRIGATÓRIO: Força a tabela a respeitar a largura da tela */
+        width: 100%; 
+    }
+
+    th, td {
+        padding: 8px 2px; /* Espaçamento mínimo entre colunas */
+        font-size: 0.75rem; /* Fonte menor */
+        white-space: nowrap; /* Não quebra linha */
+        overflow: hidden; /* Esconde o que sobrar */
+        text-overflow: ellipsis; /* Coloca "..." se o texto for grande */
+    }
+
+    /* 3. Ajuste Específico das Colunas no Mobile */
+    
+    /* Coluna de Ações (Botões) */
+    th:last-child, td:last-child {
+        width: 60px; /* Largura fixa pequena para os botões */
+        text-align: right;
+    }
+    
+    /* Coluna de Descrição (Ganha o espaço que sobrar) */
+    /* Assumindo que Descrição é sempre a 2ª coluna */
+    th:nth-child(2), td:nth-child(2) {
+        width: auto; 
+    }
+
+    /* Botões de Ação Menores */
+    .btn-icon {
+        width: 24px; height: 24px;
+        font-size: 0.7rem;
+    }
+
+    /* Badge de Status (Pago/Pend) mais compacta */
+    .status-badge {
+        padding: 2px 4px;
+        font-size: 0.6rem;
+    }
+    .status-badge i { display: none; } /* Esconde o ícone do status no mobile para economizar espaço */
+
+    /* Esconde Coluna de Categoria (já estava no código anterior, mantendo) */
+    #table-variable th:nth-child(3), 
+    #table-variable td:nth-child(3) { 
+        display: none; 
+    }
+    
+    /* Ajuste da Data para caber */
+    #table-variable th:first-child, 
+    #table-variable td:first-child {
+        width: 55px; /* Largura fixa para DD/MM */
+        font-size: 0.7rem;
+    }
 }

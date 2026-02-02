@@ -8,8 +8,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
 </head>
 <body>
 
@@ -23,8 +27,9 @@
                 <i class="fas fa-chart-pie"></i> Panorama
             </div>
             <div class="nav-item" onclick="switchView('monthly', this)">
-                <i class="fas fa-calendar-check"></i> Gestão Mensal
+                <i class="fas fa-calendar-check"></i> Gestão Mensal 
             </div>
+            
             <div class="nav-item" onclick="switchView('goals', this)">
                 <i class="fas fa-bullseye"></i> Metas & Sonhos
             </div>
@@ -41,7 +46,35 @@
                 </div>
             </div>
         </nav>
+
+        
+
     </aside>
+
+    <!-- Mobile -->
+        <nav class="mobile-nav">
+        <div class="mobile-item active" onclick="switchView('dashboard', this)">
+            <i class="fas fa-chart-pie"></i>
+            <span>Visão</span>
+        </div>
+        <div class="mobile-item" onclick="switchView('monthly', this)">
+            <i class="fas fa-calendar-check"></i>
+            <span>Mensal</span>
+        </div>
+        
+        <div class="mobile-fab" onclick="openTransactionModal('variable')">
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <div class="mobile-item" onclick="switchView('goals', this)">
+            <i class="fas fa-bullseye"></i>
+            <span>Metas</span>
+        </div>
+        <div class="mobile-item" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+            <span>Menu</span>
+        </div>
+    </nav>
 
     <main class="main">
         <header>
@@ -249,14 +282,10 @@
 
             <div class="form-group" id="field-cat" style="display:none;">
                 <label>Categoria</label>
-                <input type="text" id="trans-cat" class="input-clean" list="cats-list" placeholder="Ex: Alimentação" style="border-bottom: 1px solid #334155; padding: 10px 0;">
-                <datalist id="cats-list">
-                    <option value="Alimentação">
-                    <option value="Transporte">
-                    <option value="Lazer">
-                    <option value="Saúde">
-                    <option value="Educação">
-                </datalist>
+                <input type="text" id="trans-cat" class="input-clean" placeholder="Selecione ou digite..." style="border-bottom: 1px solid #334155; padding: 10px 0;">
+                
+                <div id="category-chips-container" class="category-chips">
+                    </div>
             </div>
 
             <div class="form-group" id="field-paid" style="display:none;">
@@ -280,25 +309,29 @@
             </div>
 
             <div class="form-group" id="field-months" style="display:none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <label style="margin:0;">Repetir em quais meses?</label>
-                    <br>
-                    <button type="button" onclick="toggleAllMonths()" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.8rem;"> Marcar Todos</button>
-                </div>
                 
-                <div class="month-grid">
-                    <label class="month-check"><input type="checkbox" value="janeiro"> JAN</label>
-                    <label class="month-check"><input type="checkbox" value="fevereiro"> FEV</label>
-                    <label class="month-check"><input type="checkbox" value="marco"> MAR</label>
-                    <label class="month-check"><input type="checkbox" value="abril"> ABR</label>
-                    <label class="month-check"><input type="checkbox" value="maio"> MAI</label>
-                    <label class="month-check"><input type="checkbox" value="junho"> JUN</label>
-                    <label class="month-check"><input type="checkbox" value="julho"> JUL</label>
-                    <label class="month-check"><input type="checkbox" value="agosto"> AGO</label>
-                    <label class="month-check"><input type="checkbox" value="setembro"> SET</label>
-                    <label class="month-check"><input type="checkbox" value="outubro"> OUT</label>
-                    <label class="month-check"><input type="checkbox" value="novembro"> NOV</label>
-                    <label class="month-check"><input type="checkbox" value="dezembro"> DEZ</label>
+                <div class="recurrence-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.85rem; color: #fff;">Repetir em:</span>
+                        <button type="button" onclick="toggleAllMonths()" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--primary); cursor: pointer; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px;">
+                            Marcar Todos
+                        </button>
+                    </div>
+                    
+                    <div class="month-grid">
+                        <label class="month-check"><input type="checkbox" value="janeiro">JAN</label>
+                        <label class="month-check"><input type="checkbox" value="fevereiro">FEV</label>
+                        <label class="month-check"><input type="checkbox" value="marco">MAR</label>
+                        <label class="month-check"><input type="checkbox" value="abril">ABR</label>
+                        <label class="month-check"><input type="checkbox" value="maio">MAI</label>
+                        <label class="month-check"><input type="checkbox" value="junho">JUN</label>
+                        <label class="month-check"><input type="checkbox" value="julho">JUL</label>
+                        <label class="month-check"><input type="checkbox" value="agosto">AGO</label>
+                        <label class="month-check"><input type="checkbox" value="setembro">SET</label>
+                        <label class="month-check"><input type="checkbox" value="outubro">OUT</label>
+                        <label class="month-check"><input type="checkbox" value="novembro">NOV</label>
+                        <label class="month-check"><input type="checkbox" value="dezembro">DEZ</label>
+                    </div>
                 </div>
             </div>
     </div>

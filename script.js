@@ -1,6 +1,17 @@
 // --- CONFIGURAÇÃO E DADOS ---
 const DB_KEY = 'SIP_FINANCE_V3';
 const MONTHS = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const DEFAULT_CATEGORIES = [
+    { name: 'Alimentação', icon: 'fa-utensils' },
+    { name: 'Moradia', icon: 'fa-home' },
+    { name: 'Transporte', icon: 'fa-car' },
+    { name: 'Lazer', icon: 'fa-gamepad' },
+    { name: 'Saúde', icon: 'fa-heartbeat' },
+    { name: 'Educação', icon: 'fa-graduation-cap' },
+    { name: 'Compras', icon: 'fa-shopping-bag' },
+    { name: 'Serviços', icon: 'fa-tools' },
+    { name: 'Viagem', icon: 'fa-plane' }
+];
 
 // Estado Visual (Filtros e Ordenação)
 let viewState = {
@@ -28,11 +39,29 @@ MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; })
 // --- INICIALIZAÇÃO ---
 window.onload = function() {
     loadData();
+
+    const hoje = new Date();
+    const indiceMes = hoje.getMonth();
+    const nomeMes = MONTHS[indiceMes]; // Ex: "fevereiro"
+    
+    // 1. Seleciona o mês correto no dropdown
+    const select = document.getElementById('month-select');
+    if(select) select.value = nomeMes;
+
+    // 2. Muda o texto do Menu Lateral para "Gestão de Fevereiro"
+    const labelMenu = document.getElementById('sidebar-month-label');
+    if(labelMenu) {
+        // Deixa a primeira letra maiúscula para ficar bonito
+        const mesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+        labelMenu.innerText = `Gestão de ${mesCapitalizado}`;
+    }
+    // ---------------------------------------
+
     // Verifica em qual tela estamos para renderizar o conteúdo certo
     if(document.getElementById('view-dashboard').classList.contains('active')) {
         renderDashboard();
     } else if(document.getElementById('view-monthly').classList.contains('active')) {
-        renderMonthly();
+        renderMonthly(); // Vai renderizar o mês que acabamos de selecionar acima
     } else {
         renderGoals();
     }
@@ -93,7 +122,7 @@ function switchView(viewId, btn) {
     const selector = document.getElementById('month-control');
 
     if(viewId === 'monthly') {
-        title.innerText = "GESTÃO MENSAL";
+        title.innerHTML = 'GESTÃO DE <span id="month-name-display">...</span>';
         selector.style.display = 'block';
         renderMonthly();
     } else if (viewId === 'dashboard') {
@@ -383,43 +412,63 @@ function openTransactionModal(type, id = null) {
     const m = document.getElementById('month-select').value;
     const modal = document.getElementById('trans-modal-overlay');
     
-    // Limpar campos
+    // 1. Limpeza de Campos
     document.getElementById('trans-id').value = '';
     document.getElementById('trans-desc').value = '';
     document.getElementById('trans-val').value = '';
-    document.getElementById('trans-date').value = '';
     document.getElementById('trans-cat').value = '';
     document.getElementById('trans-paid').checked = false;
 
-    // Reset Checkboxes
+    // 2. Resetar Checkboxes e Selecionar Mês Atual
     document.querySelectorAll('.month-check input').forEach(cb => {
         cb.checked = false;
     });
+    
+    // 3. --- LÓGICA DE TRAVAMENTO DE DATA (NOVO) ---
+    const dateInput = document.getElementById('trans-date');
+    const year = new Date().getFullYear();
+    const monthIndex = MONTHS.indexOf(m); // 0 para janeiro, 1 para fev...
 
-    // Controlar visibilidade dos campos
+    // Cria data mínima: Dia 01 do mês selecionado
+    // Formato necessário: YYYY-MM-DD
+    const pad = (n) => n < 10 ? '0' + n : n;
+    const minDate = `${year}-${pad(monthIndex + 1)}-01`;
+
+    // Cria data máxima: Último dia do mês (Dia 0 do mês seguinte)
+    const lastDayObj = new Date(year, monthIndex + 1, 0); 
+    const maxDate = lastDayObj.toISOString().split('T')[0];
+
+    // Aplica as travas no input
+    dateInput.min = minDate;
+    dateInput.max = maxDate;
+    
+    // Define o valor padrão (Se for criação, joga pro dia 1 ou dia atual se estiver dentro do mês)
+    const hoje = new Date().toISOString().split('T')[0];
+    if (hoje >= minDate && hoje <= maxDate) {
+        dateInput.value = hoje;
+    } else {
+        dateInput.value = minDate;
+    }
+    // ------------------------------------------------
+
+    // 4. Controle de Visibilidade dos Campos
     document.getElementById('field-date').style.display = (type === 'variable') ? 'block' : 'none';
     document.getElementById('field-cat').style.display = (type === 'variable') ? 'block' : 'none';
     document.getElementById('field-paid').style.display = (type === 'fixed') ? 'block' : 'none';
     
-    // Configurações Globais
+    // Lógica inteligente de meses (Fixed)
     currentTransType = type;
     currentTransId = id;
-    originalDesc = null; // Reset
+    originalDesc = null; 
 
-    // --- LÓGICA INTELIGENTE DE MESES ---
-    // Mostra o seletor se for Despesa Fixa (Seja Edição ou Criação)
     if (type === 'fixed') {
         document.getElementById('field-months').style.display = 'block';
-        
+        // (Lógica de marcar meses - mantida igual)
         if (id) {
-            // MODO EDIÇÃO: Procura o mesmo item em outros meses
             const currentItem = db.months[m][type].find(x => x.id === id);
             if(currentItem) {
-                originalDesc = currentItem.desc; // Guarda o nome original
-                
-                // Varre todos os meses procurando itens com o MESMO NOME
+                originalDesc = currentItem.desc;
                 MONTHS.forEach(month => {
-                    // Verifica se existe algum item com essa descrição neste mês
                     const exists = db.months[month].fixed.some(x => x.desc === originalDesc);
                     if (exists) {
                         const checkbox = document.querySelector(`.month-check input[value="${month}"]`);
@@ -428,12 +477,16 @@ function openTransactionModal(type, id = null) {
                 });
             }
         } else {
-            // MODO CRIAÇÃO: Marca apenas o mês atual
             const checkbox = document.querySelector(`.month-check input[value="${m}"]`);
             if(checkbox) checkbox.checked = true;
         }
     } else {
         document.getElementById('field-months').style.display = 'none';
+    }
+
+    // Renderiza Etiquetas se for variável
+    if (type === 'variable') {
+        renderCategoryChips(id ? db.months[m][type].find(x => x.id === id)?.cat : null);
     }
 
     const titles = { fixed: 'Nova Despesa Fixa', variable: 'Novo Gasto Variável', income: 'Nova Entrada' };
@@ -446,7 +499,8 @@ function openTransactionModal(type, id = null) {
             document.getElementById('trans-desc').value = item.desc;
             document.getElementById('trans-val').value = item.val;
             if(type === 'variable') {
-                document.getElementById('trans-date').value = item.date;
+                // Se já tiver data salva, respeita ela, senão usa o padrão calculado
+                if(item.date) dateInput.value = item.date;
                 document.getElementById('trans-cat').value = item.cat;
             }
             if(type === 'fixed') {
@@ -707,3 +761,46 @@ function saveGoalForm() {
     saveData(); renderGoals(); closeGoalModal();
 }
 function deleteGoal(id) { if(confirm("Excluir meta?")) { const idx = db.goals.findIndex(g => g.id === id); if(idx > -1) db.goals.splice(idx, 1); saveData(); renderGoals(); } }
+
+// --- LÓGICA DE CATEGORIAS (CHIPS) ---
+
+function renderCategoryChips(currentValue = null) {
+    const container = document.getElementById('category-chips-container');
+    const input = document.getElementById('trans-cat');
+    container.innerHTML = '';
+
+    // 1. Renderiza as Padrões
+    DEFAULT_CATEGORIES.forEach(cat => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        // Se o valor atual for igual a esta categoria, marca como ativo
+        if (currentValue === cat.name) chip.classList.add('active');
+        
+        chip.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.name}`;
+        
+        // Ao clicar: preenche o input e muda visual do chip
+        chip.onclick = () => {
+            input.value = cat.name;
+            // Remove active de todos e adiciona neste
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        };
+        
+        container.appendChild(chip);
+    });
+
+    // 2. Listener no Input para desmarcar chips se o usuário digitar algo diferente
+    input.onkeyup = function() {
+        const val = this.value;
+        const chips = document.querySelectorAll('.chip');
+        let found = false;
+        
+        chips.forEach(c => {
+            c.classList.remove('active');
+            if(c.innerText.trim() === val) {
+                c.classList.add('active');
+                found = true;
+            }
+        });
+    };
+}
