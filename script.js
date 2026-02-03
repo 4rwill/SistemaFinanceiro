@@ -804,3 +804,19 @@ function renderCategoryChips(currentValue = null) {
         });
     };
 }
+
+// --- MENU MOBILE ---
+
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu-overlay');
+    // Se já estiver aberto, fecha. Se fechado, abre.
+    if (menu.classList.contains('open')) {
+        closeMobileMenu();
+    } else {
+        menu.classList.add('open');
+    }
+}
+
+function closeMobileMenu() {
+    document.getElementById('mobile-menu-overlay').classList.remove('open');
+}

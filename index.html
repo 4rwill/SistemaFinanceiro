@@ -55,7 +55,7 @@
         <nav class="mobile-nav">
         <div class="mobile-item active" onclick="switchView('dashboard', this)">
             <i class="fas fa-chart-pie"></i>
-            <span>Visão</span>
+            <span>Geral</span>
         </div>
         <div class="mobile-item" onclick="switchView('monthly', this)">
             <i class="fas fa-calendar-check"></i>
@@ -334,6 +334,37 @@
                     </div>
                 </div>
             </div>
+    </div>
+
+    <div id="mobile-menu-overlay" class="modal-overlay" style="align-items: flex-end;" onclick="closeMobileMenu()">
+        <div class="mobile-drawer" onclick="event.stopPropagation()">
+            <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 20px auto;"></div>
+            <h3 style="margin-bottom: 20px; color: var(--primary);">Menu do Sistema</h3>
+            
+            <div class="drawer-item" onclick="exportData()">
+                <div class="icon-box"><i class="fas fa-file-export"></i></div>
+                <div>
+                    <div style="font-weight: 600;">Backup (Exportar)</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Salvar dados no arquivo</div>
+                </div>
+            </div>
+
+            <div class="drawer-item" onclick="triggerImport()">
+                <div class="icon-box"><i class="fas fa-file-import"></i></div>
+                <div>
+                    <div style="font-weight: 600;">Restaurar (Importar)</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Carregar arquivo JSON</div>
+                </div>
+            </div>
+
+            <div class="drawer-item" onclick="resetSystem()" style="border-top: 1px solid rgba(255,255,255,0.05); margin-top: 10px; padding-top: 20px;">
+                <div class="icon-box" style="background: rgba(248, 113, 113, 0.1); color: var(--danger);"><i class="fas fa-power-off"></i></div>
+                <div>
+                    <div style="font-weight: 600; color: var(--danger);">Resetar Tudo</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Apagar todos os dados</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <input type="file" id="import-file" style="display: none;" accept=".json" onchange="handleImport(this)">

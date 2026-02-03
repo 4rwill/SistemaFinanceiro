@@ -111,9 +111,6 @@ h2 { font-weight: 600; letter-spacing: -0.5px; }
     border-radius: 8px;
     padding: 0 15px;
 }
-/* #month-select{
-    padding: 7px 12px;
-} */
 select {
     background: transparent;
     border: none;
@@ -179,13 +176,19 @@ select {
 .kpi-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .kpi-val { font-size: 1.8rem; font-weight: 700; font-family: var(--font-mono); color: #fff; }
 
-/* Tables */
+/* Tables (Atualizado para Scroll e Sticky Header) */
 .panel {
     background: var(--bg-card);
     border: var(--border);
     border-radius: var(--radius);
     margin-bottom: 24px;
-    overflow: hidden;
+    
+    /* MODIFICAÇÃO DE SCROLL */
+    max-height: 400px; /* Altura máxima do painel */
+    overflow-y: auto;  /* Cria barra de rolagem */
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .panel-header {
@@ -194,7 +197,13 @@ select {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255,255,255,0.01);
+    
+    /* MODIFICAÇÃO DE SCROLL */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #1e293b; /* Fundo sólido para cobrir a lista */
+    flex-shrink: 0;
 }
 
 .panel-title { font-weight: 600; font-size: 1rem; color: var(--text-main); }
@@ -212,10 +221,33 @@ select {
 .btn-icon:hover { background: var(--primary); color: #000; transform: scale(1.05); }
 
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 16px 24px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; border-bottom: var(--border); font-weight: 600; }
+
+th { 
+    text-align: left; 
+    padding: 16px 24px; 
+    color: var(--text-muted); 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    border-bottom: var(--border); 
+    font-weight: 600;
+    
+    /* STICKY HEADER DA TABELA */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #1e293b;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
 td { padding: 12px 24px; border-bottom: var(--border); color: var(--text-main); font-size: 0.95rem; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--bg-hover); }
+
+/* Custom Scrollbar para os Painéis */
+.panel::-webkit-scrollbar { width: 6px; }
+.panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+.panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+.panel::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 /* Form Inputs in Table */
 .input-clean {
@@ -506,8 +538,10 @@ select option {
 
     /* Ajusta Main Area */
     .main {
-        width: 100%;
-        padding-bottom: 80px; /* Espaço para o menu inferior não cobrir conteúdo */
+        width: 100vw;
+        padding: 0;
+        padding-bottom: 90px; /* Espaço maior para o menu não cobrir o último card */
+        overflow-x: hidden;
     }
 
     header {
@@ -567,11 +601,164 @@ select option {
     }
     
     .grid-split {
-        grid-template-columns: 1fr; /* 1 coluna */
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    /* Ajustes Gerais de Painel Mobile */
+    .view-section {
+        padding: 15px; /* Menos padding nas laterais */
+    }
+
+    /* 2. TRANSFORMAÇÃO TABELA -> CARDS */
+    /* Remove comportamento de tabela */
+    .panel table, .panel thead, .panel tbody, .panel th, .panel td, .panel tr { 
+        display: block; 
+    }
+
+    /* Esconde o cabeçalho da tabela (Data, Descrição, Valor...) pois o card é intuitivo */
+    .panel thead tr { 
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
     }
 
     .panel {
-        overflow-x: auto; /* Permite rolagem horizontal em tabelas */
+        /* No celular, limitamos um pouco menos para caber mais cards */
+        max-height: 60vh; /* Ocupa no máximo 60% da altura da tela */
+        overflow-y: auto; /* Permite rolar os cards dentro do painel */
+        background: transparent; /* Remove fundo do painel para os cards flutuarem */
+        border: none;
+        padding: 0 5px;
+        overflow: visible; /* Sobrescreve para permitir sombras, o scroll é interno ou na página */
+        overflow-y: auto;
+    }
+    
+    .panel-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(10px);
+        margin-bottom: 10px;
+        border-radius: 12px;
+    }
+
+    /* ESTILO DO CARTÃO (Cada linha tr vira um card) */
+    .panel tbody tr { 
+        background: rgba(30, 41, 59, 0.9); /* Fundo do card */
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        margin-bottom: 15px; /* Espaço entre cards */
+        padding: 15px;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .panel tbody tr:active {
+        transform: scale(0.99); /* Efeito de clique */
+    }
+
+    /* 3. ORGANIZAÇÃO INTERNA DO CARD */
+    .panel td { 
+        border: none;
+        padding: 2px 0;
+        position: relative;
+        text-align: left;
+    }
+
+    /* --- REGRAS ESPECÍFICAS POR TIPO DE TABELA --- */
+
+    /* A) GASTOS VARIÁVEIS (Data / Desc / Cat / Valor / Ações) */
+    #table-variable td:nth-of-type(1) { /* Data */
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+    
+    #table-variable td:nth-of-type(2) { /* Descrição */
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 5px;
+        padding-right: 80px; /* Espaço para não bater no valor */
+    }
+
+    #table-variable td:nth-of-type(3) { /* Categoria */
+        display: inline-block; /* Garante que aparece */
+    }
+    
+    #table-variable td:nth-of-type(4) { /* Valor */
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    #table-variable td:nth-of-type(5) { /* Ações (Botões) */
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+    }
+
+    /* B) DESPESAS FIXAS (Status / Desc / Valor / Ações) */
+    #table-fixed td:nth-of-type(1) { /* Status Badge */
+        margin-bottom: 8px;
+    }
+
+    #table-fixed td:nth-of-type(2) { /* Descrição */
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    #table-fixed td:nth-of-type(3) { /* Valor */
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    #table-fixed td:nth-of-type(4) { /* Ações */
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+    }
+
+    /* C) ENTRADAS (Desc / Valor / Ações) */
+    #table-income td:nth-of-type(1) { /* Descrição */
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 5px;
+    }
+
+    #table-income td:nth-of-type(2) { /* Valor */
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--success) !important;
+    }
+
+    #table-income td:nth-of-type(3) { /* Ações */
+        position: absolute;
+        bottom: 15px;
+        right: 15px;
+    }
+
+    /* Botões de Ação Maiores no Mobile */
+    .btn-icon {
+        width: 35px; height: 35px; /* Maior área de toque */
+        font-size: 0.9rem;
+        background: rgba(255,255,255,0.1);
     }
 
     /* 4. Ajustes de Modal para Mobile */
@@ -587,8 +774,9 @@ select option {
     }
 
     /* Esconde colunas menos importantes das tabelas no mobile para caber */
+    /* A regra abaixo pode ser redundante com a lógica de cards, mas mantemos para segurança */
     #table-variable th:nth-child(3), #table-variable td:nth-child(3) { 
-        display: none; /* Esconde Categoria na lista (ocupa muito espaço) */
+        /* display: none; -> Removido pois no modo CARD queremos ver a categoria */
     }
 }
 
@@ -599,76 +787,45 @@ html, body {
     position: relative;
 }
 
-/* --- AJUSTES MOBILE (FINAL) --- */
-@media (max-width: 768px) {
+/* --- MENU MOBILE (DRAWER) --- */
+.mobile-drawer {
+    width: 100%;
+    background: #1e293b;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 20px 24px 40px 24px; /* Mais padding embaixo por causa do iPhone */
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    border-top: 1px solid rgba(255,255,255,0.1);
     
-    /* 1. Ajuste do Container Principal */
-    .main {
-        width: 100vw; /* Garante que usa 100% da viewport */
-        padding: 0;
-        padding-bottom: 80px; /* Espaço para o menu inferior */
-        overflow-x: hidden;
-    }
+    /* Animação de entrada */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
-    /* 2. Compactação Extrema das Tabelas */
-    .panel {
-        padding: 10px 5px; /* Quase sem borda interna */
-        margin: 10px;
-        border-radius: 8px;
-    }
+/* Quando o modal abre, a gaveta sobe */
+.modal-overlay.open .mobile-drawer {
+    transform: translateY(0);
+}
 
-    table {
-        table-layout: fixed; /* OBRIGATÓRIO: Força a tabela a respeitar a largura da tela */
-        width: 100%; 
-    }
+.drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: 0.2s;
+}
 
-    th, td {
-        padding: 8px 2px; /* Espaçamento mínimo entre colunas */
-        font-size: 0.75rem; /* Fonte menor */
-        white-space: nowrap; /* Não quebra linha */
-        overflow: hidden; /* Esconde o que sobrar */
-        text-overflow: ellipsis; /* Coloca "..." se o texto for grande */
-    }
+.drawer-item:active {
+    opacity: 0.6;
+    transform: scale(0.98);
+}
 
-    /* 3. Ajuste Específico das Colunas no Mobile */
-    
-    /* Coluna de Ações (Botões) */
-    th:last-child, td:last-child {
-        width: 60px; /* Largura fixa pequena para os botões */
-        text-align: right;
-    }
-    
-    /* Coluna de Descrição (Ganha o espaço que sobrar) */
-    /* Assumindo que Descrição é sempre a 2ª coluna */
-    th:nth-child(2), td:nth-child(2) {
-        width: auto; 
-    }
-
-    /* Botões de Ação Menores */
-    .btn-icon {
-        width: 24px; height: 24px;
-        font-size: 0.7rem;
-    }
-
-    /* Badge de Status (Pago/Pend) mais compacta */
-    .status-badge {
-        padding: 2px 4px;
-        font-size: 0.6rem;
-    }
-    .status-badge i { display: none; } /* Esconde o ícone do status no mobile para economizar espaço */
-
-    /* Esconde Coluna de Categoria (já estava no código anterior, mantendo) */
-    #table-variable th:nth-child(3), 
-    #table-variable td:nth-child(3) { 
-        display: none; 
-    }
-    
-    /* Ajuste da Data para caber */
-    #table-variable th:first-child, 
-    #table-variable td:first-child {
-        width: 55px; /* Largura fixa para DD/MM */
-        font-size: 0.7rem;
-    }
-
-  
+.drawer-item .icon-box {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
 }
