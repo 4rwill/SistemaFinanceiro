@@ -111,6 +111,9 @@ h2 { font-weight: 600; letter-spacing: -0.5px; }
     border-radius: 8px;
     padding: 0 15px;
 }
+/* #month-select{
+    padding: 7px 12px;
+} */
 select {
     background: transparent;
     border: none;
@@ -666,4 +669,6 @@ html, body {
         width: 55px; /* Largura fixa para DD/MM */
         font-size: 0.7rem;
     }
+
+  
 }
