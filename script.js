@@ -224,7 +224,6 @@ function renderDashboard() {
         const inc = d.income.reduce((a,b) => a + Number(b.val), 0);
         const exp = d.fixed.reduce((a,b) => a + Number(b.val), 0) + d.variable.reduce((a,b) => a + Number(b.val), 0);
         
-        // teste 
         totalInc += inc;
         totalExp += exp;
         labels.push(m.substr(0,3).toUpperCase());
