@@ -23,14 +23,17 @@ let viewState = {
 // Variáveis Globais de Controle dos Modais
 let currentTransId = null;
 let currentTransType = null;
+let currentCardId = null;
 let currentGoalId = null;
 let selectedGoalIcon = 'fa-bullseye';
 let originalDesc = null;
+let selectedCardColor = '#111';
 
 // Estrutura Inicial do Banco de Dados
 let db = {
     months: {},
-    goals: [] 
+    goals: [],
+    cards: []
 };
 
 // Inicializa meses vazios na memória
@@ -40,28 +43,26 @@ MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; })
 window.onload = function() {
     loadData();
 
+    // 1. Detecta Mês Atual
     const hoje = new Date();
-    const indiceMes = hoje.getMonth();
-    const nomeMes = MONTHS[indiceMes]; // Ex: "fevereiro"
+    const nomeMes = MONTHS[hoje.getMonth()];
     
-    // 1. Seleciona o mês correto no dropdown
     const select = document.getElementById('month-select');
     if(select) select.value = nomeMes;
 
-    // 2. Muda o texto do Menu Lateral para "Gestão de Fevereiro"
     const labelMenu = document.getElementById('sidebar-month-label');
     if(labelMenu) {
-        // Deixa a primeira letra maiúscula para ficar bonito
         const mesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
         labelMenu.innerText = `Gestão de ${mesCapitalizado}`;
     }
-    // ---------------------------------------
 
-    // Verifica em qual tela estamos para renderizar o conteúdo certo
+    // 2. Verifica qual aba está ativa no HTML e renderiza o conteúdo certo
     if(document.getElementById('view-dashboard').classList.contains('active')) {
         renderDashboard();
     } else if(document.getElementById('view-monthly').classList.contains('active')) {
-        renderMonthly(); // Vai renderizar o mês que acabamos de selecionar acima
+        renderMonthly();
+    } else if(document.getElementById('view-cards').classList.contains('active')) {
+        renderCards(); // <--- Adicionado aqui também
     } else {
         renderGoals();
     }
@@ -109,31 +110,59 @@ function resetSystem() {
 
 // --- NAVEGAÇÃO ---
 function switchView(viewId, btn) {
-    // Atualiza Menu Lateral
+    // 1. Atualiza Menu Lateral
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.mobile-item').forEach(el => el.classList.remove('active'));
-    if(btn) btn.classList.add('active');
     
-    // Atualiza Seções
+    // Se veio de um clique de botão, ativa ele. 
+    // Se não (ex: reload), tenta achar o botão correspondente pelo ID da view.
+    if(btn) {
+        btn.classList.add('active');
+    } else {
+        // Tenta ativar o botão do menu lateral correspondente a esta view
+        const sideBtn = document.querySelector(`.nav-item[onclick*="'${viewId}'"]`);
+        if(sideBtn) sideBtn.classList.add('active');
+    }
+    
+    // 2. Atualiza Seções (Esconde todas e mostra a escolhida)
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(`view-${viewId}`).classList.add('active');
 
-    // Lógica de Header
+    // 3. Lógica de Título e Renderização Específica
     const title = document.getElementById('page-title');
     const selector = document.getElementById('month-control');
 
     if(viewId === 'monthly') {
         title.innerHTML = 'GESTÃO DE <span id="month-name-display">...</span>';
-        selector.style.display = 'block';
+        selector.style.display = 'block'; // Mostra seletor de mês
         renderMonthly();
-    } else if (viewId === 'dashboard') {
+    } 
+    else if (viewId === 'dashboard') {
         title.innerText = "VISÃO GERAL";
         selector.style.display = 'none';
         renderDashboard();
-    } else {
+    } 
+    else if (viewId === 'cards') { // --- NOVO BLOCO ---
+        title.innerText = "MEUS CARTÕES";
+        selector.style.display = 'block'; // Mostra mês (para ver faturas passadas)
+        renderCards(); // <--- O PULO DO GATO: Renderiza os cartões!
+    }
+    else { // Assume que é 'goals'
         title.innerText = "METAS & SONHOS";
         selector.style.display = 'none';
         renderGoals();
+    }
+}
+
+// --- CONTROLE DE MUDANÇA DE MÊS ---
+function handleMonthChange() {
+    // Verifica se estamos na aba de Cartões
+    if(document.getElementById('view-cards').classList.contains('active')) {
+        renderCards(); // Se estiver nos cartões, atualiza as faturas
+    } 
+    // Verifica se estamos na aba Mensal
+    else if(document.getElementById('view-monthly').classList.contains('active')) {
+        renderMonthly(); // Se estiver na gestão mensal, atualiza as tabelas
     }
 }
 
@@ -413,7 +442,7 @@ function openTransactionModal(type, id = null) {
     const m = document.getElementById('month-select').value;
     const modal = document.getElementById('trans-modal-overlay');
     
-    // 1. Limpeza de Campos
+    // 1. Limpeza de Campos Básicos
     document.getElementById('trans-id').value = '';
     document.getElementById('trans-desc').value = '';
     document.getElementById('trans-val').value = '';
@@ -425,46 +454,69 @@ function openTransactionModal(type, id = null) {
         cb.checked = false;
     });
     
-    // 3. --- LÓGICA DE TRAVAMENTO DE DATA (NOVO) ---
+    // 3. --- LÓGICA DE TRAVAMENTO DE DATA ---
     const dateInput = document.getElementById('trans-date');
     const year = new Date().getFullYear();
-    const monthIndex = MONTHS.indexOf(m); // 0 para janeiro, 1 para fev...
+    const monthIndex = MONTHS.indexOf(m); 
 
-    // Cria data mínima: Dia 01 do mês selecionado
-    // Formato necessário: YYYY-MM-DD
     const pad = (n) => n < 10 ? '0' + n : n;
     const minDate = `${year}-${pad(monthIndex + 1)}-01`;
-
-    // Cria data máxima: Último dia do mês (Dia 0 do mês seguinte)
     const lastDayObj = new Date(year, monthIndex + 1, 0); 
     const maxDate = lastDayObj.toISOString().split('T')[0];
 
-    // Aplica as travas no input
     dateInput.min = minDate;
     dateInput.max = maxDate;
     
-    // Define o valor padrão (Se for criação, joga pro dia 1 ou dia atual se estiver dentro do mês)
     const hoje = new Date().toISOString().split('T')[0];
     if (hoje >= minDate && hoje <= maxDate) {
         dateInput.value = hoje;
     } else {
         dateInput.value = minDate;
     }
-    // ------------------------------------------------
 
     // 4. Controle de Visibilidade dos Campos
     document.getElementById('field-date').style.display = (type === 'variable') ? 'block' : 'none';
     document.getElementById('field-cat').style.display = (type === 'variable') ? 'block' : 'none';
+    document.getElementById('field-method').style.display = (type === 'variable') ? 'block' : 'none'; // Campo de Pagamento
     document.getElementById('field-paid').style.display = (type === 'fixed') ? 'block' : 'none';
-    
-    // Lógica inteligente de meses (Fixed)
+
+    // 5. --- RENDERIZAR OPÇÕES DE CARTÃO (PASSO E - NOVO) ---
+    if (type === 'variable') {
+        const cardContainer = document.getElementById('card-options-container');
+        if(cardContainer) {
+            cardContainer.innerHTML = ''; // Limpa opções anteriores
+            
+            // Cria um radio button para cada cartão cadastrado
+            if(db.cards && db.cards.length > 0) {
+                db.cards.forEach(card => {
+                    const label = document.createElement('label');
+                    label.className = 'method-opt';
+                    label.innerHTML = `
+                        <input type="radio" name="trans-method" value="${card.id}" onchange="toggleMethodStyle(this)">
+                        <i class="fas fa-credit-card" style="color:${card.color}"></i> ${card.name}
+                    `;
+                    cardContainer.appendChild(label);
+                });
+            }
+        }
+        
+        // Reset Visual: Remove 'active' de todos e marca Débito como padrão
+        document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
+        const debitInput = document.querySelector('input[value="debit"]');
+        if(debitInput) {
+            debitInput.checked = true;
+            debitInput.parentElement.classList.add('active');
+        }
+    }
+    // -------------------------------------------------------
+
+    // Lógica de Despesa Fixa (Meses)
     currentTransType = type;
     currentTransId = id;
     originalDesc = null; 
 
     if (type === 'fixed') {
         document.getElementById('field-months').style.display = 'block';
-        // (Lógica de marcar meses - mantida igual)
         if (id) {
             const currentItem = db.months[m][type].find(x => x.id === id);
             if(currentItem) {
@@ -485,7 +537,7 @@ function openTransactionModal(type, id = null) {
         document.getElementById('field-months').style.display = 'none';
     }
 
-    // Renderiza Etiquetas se for variável
+    // Renderiza Etiquetas de Categoria
     if (type === 'variable') {
         renderCategoryChips(id ? db.months[m][type].find(x => x.id === id)?.cat : null);
     }
@@ -493,20 +545,29 @@ function openTransactionModal(type, id = null) {
     const titles = { fixed: 'Nova Despesa Fixa', variable: 'Novo Gasto Variável', income: 'Nova Entrada' };
     document.getElementById('trans-modal-title').innerText = id ? 'Editar Transação' : titles[type];
 
-    // Ajusta placeholder de acordo com o tipo de transação
     const placeholders = { fixed: 'Ex: Conta de Luz', variable: 'Ex: Supermercado', income: 'Ex: Salário' };
     document.getElementById('trans-desc').placeholder = placeholders[type];
 
-    // Preencher campos se for edição
+    // Preencher campos se for EDIÇÃO
     if (id) {
         const item = db.months[m][type].find(x => x.id === id);
         if (item) {
             document.getElementById('trans-desc').value = item.desc;
             document.getElementById('trans-val').value = item.val;
+            
             if(type === 'variable') {
-                // Se já tiver data salva, respeita ela, senão usa o padrão calculado
                 if(item.date) dateInput.value = item.date;
                 document.getElementById('trans-cat').value = item.cat;
+
+                // --- RECUPERAR MÉTODO DE PAGAMENTO NA EDIÇÃO ---
+                const methodToSelect = item.method || 'debit';
+                const radioToCheck = document.querySelector(`input[name="trans-method"][value="${methodToSelect}"]`);
+                if(radioToCheck) {
+                    radioToCheck.checked = true;
+                    // Atualiza visual (remove active dos outros e põe neste)
+                    document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
+                    radioToCheck.parentElement.classList.add('active');
+                }
             }
             if(type === 'fixed') {
                 document.getElementById('trans-paid').checked = item.paid;
@@ -515,6 +576,16 @@ function openTransactionModal(type, id = null) {
     }
 
     modal.classList.add('open');
+}
+
+// --- FUNÇÃO AUXILIAR PARA TROCAR ESTILO DO BOTÃO DE PAGAMENTO ---
+function toggleMethodStyle(radio) {
+    // Remove a classe .active de todas as opções
+    document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
+    // Adiciona a classe .active apenas no pai do radio selecionado
+    if(radio.checked) {
+        radio.parentElement.classList.add('active');
+    }
 }
 function closeTransactionModal() {
     document.getElementById('trans-modal-overlay').classList.remove('open');
@@ -529,10 +600,14 @@ function toggleAllMonths() {
 function saveTransactionForm() {
     const currentMonth = document.getElementById('month-select').value;
     const type = currentTransType;
-    
     const desc = document.getElementById('trans-desc').value;
     const val = Number(document.getElementById('trans-val').value);
     
+    // Captura o método de pagamento (radio button marcado)
+    // Se for 'debit', é débito. Se for um ID numérico, é cartão.
+    const methodInput = document.querySelector('input[name="trans-method"]:checked');
+    const method = methodInput ? methodInput.value : 'debit'; 
+
     if(!desc || val <= 0) { alert('Preencha descrição e valor.'); return; }
 
     // --- LÓGICA PARA DESPESAS FIXAS (EM LOTE) ---
@@ -583,35 +658,34 @@ function saveTransactionForm() {
     } 
     
     // --- LÓGICA PARA VARIÁVEIS E ENTRADAS (SIMPLES) ---
-    else {
-        if (currentTransId) {
-            // Edição Simples
+   if (type === 'variable') {
+         if (currentTransId) {
+            // Edição...
             const idx = db.months[currentMonth][type].findIndex(x => x.id === currentTransId);
             if(idx > -1) {
+                // Atualiza campos
                 db.months[currentMonth][type][idx].desc = desc;
                 db.months[currentMonth][type][idx].val = val;
-                
-                if(type === 'variable') {
-                    db.months[currentMonth][type][idx].date = document.getElementById('trans-date').value;
-                    db.months[currentMonth][type][idx].cat = document.getElementById('trans-cat').value || 'Geral';
-                }
+                db.months[currentMonth][type][idx].date = document.getElementById('trans-date').value;
+                db.months[currentMonth][type][idx].cat = document.getElementById('trans-cat').value || 'Geral';
+                db.months[currentMonth][type][idx].method = method; // Salva o método!
             }
         } else {
-            // Criação Simples
+            // Criação...
             const newItem = {
                 id: Date.now() + Math.random(),
                 desc: desc,
-                val: val
+                val: val,
+                date: document.getElementById('trans-date').value,
+                cat: document.getElementById('trans-cat').value || 'Geral',
+                method: method // Salva o método!
             };
-            if(type === 'variable') {
-                newItem.date = document.getElementById('trans-date').value;
-                newItem.cat = document.getElementById('trans-cat').value || 'Geral';
-            }
             db.months[currentMonth][type].push(newItem);
         }
     }
 
     saveData();
+    if(document.getElementById('view-cards').classList.contains('active')) renderCards();
     renderMonthly();
     closeTransactionModal();
 }
@@ -635,12 +709,25 @@ function toggleStatus(month, idx) {
 function updateCalculations() {
     const m = document.getElementById('month-select').value;
     const d = db.months[m];
-    const inc = d.income.reduce((a,b)=>a+Number(b.val),0);
-    const exp = d.fixed.reduce((a,b)=>a+Number(b.val),0) + d.variable.reduce((a,b)=>a+Number(b.val),0);
     
-    document.getElementById('m-balance').innerText = formatBRL(inc - exp);
+    const inc = d.income.reduce((a,b)=>a+Number(b.val),0);
+    
+    // GASTOS FIXOS: Sempre descontam (assumindo que saem da conta/boleto)
+    const expFixed = d.fixed.reduce((a,b)=>a+Number(b.val),0);
+    
+    // GASTOS VARIÁVEIS: Só desconta se method for 'debit' (ou undefined para retrocompatibilidade)
+    const expVariable = d.variable.reduce((a,b) => {
+        if (!b.method || b.method === 'debit') {
+            return a + Number(b.val);
+        }
+        return a; // Se for cartão, não soma no Total Exp do Dashboard
+    }, 0);
+    
+    const totalExp = expFixed + expVariable;
+    
+    document.getElementById('m-balance').innerText = formatBRL(inc - totalExp);
     document.getElementById('m-inc').innerText = formatBRL(inc);
-    document.getElementById('m-exp').innerText = formatBRL(exp);
+    document.getElementById('m-exp').innerText = formatBRL(totalExp);
     updateCategoryChart(d);
 }
 
@@ -824,4 +911,181 @@ function toggleMobileMenu() {
 
 function closeMobileMenu() {
     document.getElementById('mobile-menu-overlay').classList.remove('open');
+}
+
+// --- LÓGICA DE CARTÕES ---
+
+function openCardModal(id = null) {
+    currentCardId = id; // Define se é edição ou novo
+    const modal = document.getElementById('card-modal-overlay');
+    
+    // Limpa campos
+    document.getElementById('card-name').value = '';
+    document.getElementById('card-limit').value = '';
+    document.getElementById('card-closing').value = '';
+    
+    // Reseta cor visualmente
+    selectCardColor('#111'); 
+
+    // Se for EDIÇÃO, preenche os dados
+    if (id) {
+        const card = db.cards.find(c => c.id === id);
+        if (card) {
+            document.getElementById('card-name').value = card.name;
+            document.getElementById('card-limit').value = card.limit;
+            document.getElementById('card-closing').value = card.closing;
+            
+            // Marca a cor selecionada. 
+            // Truque: Se a cor não for uma das bolinhas padrões, marcamos o botão de "Palette"
+            let colorBtn = document.querySelector(`.color-opt[style*="${card.color}"]`);
+            if (!colorBtn) {
+                // Se não achou nas padrões, marca o seletor personalizado
+                colorBtn = document.getElementById('custom-picker-btn');
+                // E atualiza o value do input invisível para a cor certa
+                colorBtn.querySelector('input').value = card.color;
+            }
+            
+            selectCardColor(card.color, colorBtn);
+        }
+    }
+
+    modal.classList.add('open');
+}
+function closeCardModal() {
+    document.getElementById('card-modal-overlay').classList.remove('open');
+}
+function selectCardColor(c) {
+    selectedCardColor = c;
+    // Feedback visual simples
+    document.querySelectorAll('.color-opt').forEach(el => el.style.border = 'none');
+    event.target.style.border = '2px solid white';
+}
+
+function saveCardForm() {
+    const name = document.getElementById('card-name').value;
+    const limit = Number(document.getElementById('card-limit').value);
+    const closing = document.getElementById('card-closing').value;
+    
+    if(!name) return alert("Nome obrigatório");
+
+    const cardData = {
+        name,
+        limit,
+        closing,
+        color: selectedCardColor
+    };
+
+    if (currentCardId) {
+        // --- MODO EDIÇÃO ---
+        const idx = db.cards.findIndex(c => c.id === currentCardId);
+        if (idx > -1) {
+            // Mantém o ID original, atualiza o resto
+            db.cards[idx] = { ...db.cards[idx], ...cardData };
+        }
+    } else {
+        // --- MODO CRIAÇÃO ---
+        db.cards.push({
+            id: 'card_' + Date.now(),
+            ...cardData
+        });
+    }
+
+    saveData();
+    renderCards();
+    closeCardModal();
+}
+
+function deleteCard(id) {
+    if(confirm("Tem certeza que deseja excluir este cartão? As despesas antigas continuarão salvas, mas você não poderá selecionar este cartão para novos gastos.")) {
+        const idx = db.cards.findIndex(c => c.id === id);
+        if(idx > -1) {
+            db.cards.splice(idx, 1);
+            saveData();
+            renderCards();
+        }
+    }
+}
+
+function renderCards() {
+    const container = document.getElementById('cards-container');
+    container.innerHTML = '';
+    
+    const currentMonth = document.getElementById('month-select').value;
+    
+    if(!db.cards || db.cards.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1; text-align:center; padding: 20px;">Nenhum cartão cadastrado. Clique em "+" para adicionar.</p>';
+        return;
+    }
+
+    db.cards.forEach(card => {
+        // Calcular Fatura
+        const invoiceTotal = db.months[currentMonth].variable
+            .filter(item => item.method === card.id)
+            .reduce((sum, item) => sum + Number(item.val), 0);
+
+        const available = card.limit - invoiceTotal;
+        const pct = Math.min(100, (invoiceTotal / card.limit) * 100);
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'credit-card-widget';
+        cardEl.style.background = `linear-gradient(135deg, ${card.color}, #000)`;
+        
+        // ADICIONEI OS BOTÕES DE AÇÃO AQUI EM CIMA:
+        cardEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div style="font-weight:bold; font-size:1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${card.name}</div>
+                <div style="display:flex; gap: 8px;">
+                    <button onclick="openCardModal('${card.id}')" class="btn-card-action" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                    <button onclick="deleteCard('${card.id}')" class="btn-card-action" title="Excluir"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            
+            <div style="margin-top:20px;">
+                <div style="font-size:0.8rem; opacity:0.9;">Fatura Atual (${currentMonth})</div>
+                <div style="font-size:1.5rem; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${formatBRL(invoiceTotal)}</div>
+            </div>
+            
+            <div style="margin-top:15px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:5px; opacity: 0.9;">
+                    <span>Limite Usado ${pct.toFixed(0)}%</span>
+                    <span>Disp: ${formatBRL(available)}</span>
+                </div>
+                <div class="progress-bg" style="background: rgba(255,255,255,0.2);"><div class="progress-fill" style="width:${pct}%; background:#fff; box-shadow: 0 0 10px rgba(255,255,255,0.5);"></div></div>
+            </div>
+            
+            <div style="margin-top:15px; text-align:right;">
+                <button onclick="payInvoice('${card.id}', ${invoiceTotal})" class="btn-pay-invoice">Pagar Fatura</button>
+            </div>
+        `;
+        container.appendChild(cardEl);
+    });
+}
+
+function payInvoice(cardId, amount) {
+    if(amount <= 0) return alert("Fatura zerada!");
+    const currentMonth = document.getElementById('month-select').value;
+    
+    if(confirm(`Deseja lançar um pagamento de ${formatBRL(amount)} agora? Isso vai descontar do seu saldo.`)) {
+        // Cria uma despesa "Débito" representando o pagamento da fatura
+        const cardName = db.cards.find(c => c.id === cardId).name;
+        
+        db.months[currentMonth].variable.push({
+            id: Date.now(),
+            desc: `Pagamento Fatura ${cardName}`,
+            val: amount,
+            date: new Date().toISOString().split('T')[0],
+            cat: 'Pagamentos',
+            method: 'debit' // Importante: ISSO desconta do saldo
+        });
+
+        // Opcional: Você poderia "arquivar" os gastos originais do cartão para não somar na próxima fatura, 
+        // mas na lógica simplificada por Mês, basta criar o débito. 
+        // O visual da fatura continuará mostrando o total gasto no cartão naquele mês, 
+        // mas o saldo geral estará correto (Gastos Cartão [Ignorado] + Pagamento Fatura [Descontado]).
+        
+        saveData();
+        renderMonthly();
+        renderCards();
+        alert("Pagamento registrado!");
+    }
 }
