@@ -111,6 +111,7 @@ function resetSystem() {
 function switchView(viewId, btn) {
     // Atualiza Menu Lateral
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.mobile-item').forEach(el => el.classList.remove('active'));
     if(btn) btn.classList.add('active');
     
     // Atualiza Seções
@@ -491,6 +492,10 @@ function openTransactionModal(type, id = null) {
 
     const titles = { fixed: 'Nova Despesa Fixa', variable: 'Novo Gasto Variável', income: 'Nova Entrada' };
     document.getElementById('trans-modal-title').innerText = id ? 'Editar Transação' : titles[type];
+
+    // Ajusta placeholder de acordo com o tipo de transação
+    const placeholders = { fixed: 'Ex: Conta de Luz', variable: 'Ex: Supermercado', income: 'Ex: Salário' };
+    document.getElementById('trans-desc').placeholder = placeholders[type];
 
     // Preencher campos se for edição
     if (id) {
