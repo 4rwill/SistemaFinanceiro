@@ -13,12 +13,14 @@ const DEFAULT_CATEGORIES = [
     { name: 'Viagem', icon: 'fa-plane' }
 ];
 
+// --- FIREBASE SETUP (O NOVO MOTOR) ---
+// Pega as ferramentas que carregamos no HTML
+const { db: firestore, auth, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
+
+let currentUser = null; // Guarda quem está logado
+
 // Estado Visual (Filtros e Ordenação)
-let viewState = {
-    filter: 'all',
-    sortCol: 'date',
-    sortAsc: true
-};
+let viewState = { filter: 'all', sortCol: 'date', sortAsc: true };
 
 // Variáveis Globais de Controle dos Modais
 let currentTransId = null;
@@ -30,19 +32,36 @@ let originalDesc = null;
 let selectedCardColor = '#111';
 
 // Estrutura Inicial do Banco de Dados
-let db = {
-    months: {},
-    goals: [],
-    cards: []
-};
-
-// Inicializa meses vazios na memória
+let db = { months: {}, goals: [], cards: [] };
 MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; });
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO (LOGIN CHECK) ---
+// Substituímos o window.onload antigo por este que espera o Login
 window.onload = function() {
-    loadData();
+    const statusText = document.getElementById('login-status');
+    if(statusText) statusText.innerText = "Conectando ao servidor...";
 
+    // Ouve se o usuário entrou ou saiu
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // USUÁRIO LOGADO
+            currentUser = user;
+            document.getElementById('login-screen').style.display = 'none'; // Some a tela de login
+            console.log("Logado como:", user.email);
+            
+            await loadDataCloud(); // Carrega da nuvem
+            
+            setupUI(); // Renderiza a tela
+        } else {
+            // USUÁRIO DESLOGADO
+            currentUser = null;
+            document.getElementById('login-screen').style.display = 'flex'; // Mostra tela de login
+            if(statusText) statusText.innerText = "";
+        }
+    });
+};
+
+function setupUI() {
     // 1. Detecta Mês Atual
     const hoje = new Date();
     const nomeMes = MONTHS[hoje.getMonth()];
@@ -62,48 +81,118 @@ window.onload = function() {
     } else if(document.getElementById('view-monthly').classList.contains('active')) {
         renderMonthly();
     } else if(document.getElementById('view-cards').classList.contains('active')) {
-        renderCards(); // <--- Adicionado aqui também
+        renderCards();
     } else {
         renderGoals();
     }
-};
+}
 
-// --- GERENCIAMENTO DE DADOS ---
-function loadData() {
-    const saved = localStorage.getItem(DB_KEY);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            db = { ...db, ...parsed };
-            // Garante integridade se faltar algum mês no JSON antigo
-            MONTHS.forEach(m => {
-                if(!db.months[m]) db.months[m] = { fixed: [], variable: [], income: [] };
-            });
-        } catch(e) { console.error("Erro ao carregar dados", e); }
-    } else {
-        saveData();
+// --- FUNÇÕES DE AUTH (GOOGLE) ---
+async function loginGoogle() {
+    try {
+        document.getElementById('login-status').innerText = "Abrindo popup do Google...";
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        alert("Erro no login: " + error.message);
     }
 }
 
-function saveData() {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    showToast();
+async function logoutGoogle() {
+    if(confirm("Deseja sair da conta?")) {
+        await signOut(auth);
+        location.reload(); // Recarrega para limpar memória
+    }
+}
+
+// --- GERENCIAMENTO DE DADOS (AGORA NA NUVEM) ---
+
+async function loadDataCloud() {
+    if (!currentUser) return;
+    
+    // Tenta pegar do Firebase
+    const userRef = doc(firestore, "users", currentUser.uid);
+    const docSnap = await getDoc(userRef);
+
+    if (docSnap.exists()) {
+        // CENÁRIO 1: Já tem dados na nuvem -> Baixa e usa
+        console.log("Dados encontrados na nuvem!");
+        db = docSnap.data();
+        // Garante integridade
+        MONTHS.forEach(m => {
+            if(!db.months[m]) db.months[m] = { fixed: [], variable: [], income: [] };
+        });
+    } else {
+        // CENÁRIO 2: Primeira vez na nuvem (Novo Usuário)
+        console.log("Conta nova detectada.");
+        
+        // Verifica se tem dados LOCAIS (do uso antigo)
+        const localData = localStorage.getItem(DB_KEY);
+        
+        if (localData) {
+            // AQUI ESTÁ A CORREÇÃO: Pergunta antes de copiar!
+            const desejaImportar = confirm("Encontramos dados salvos neste dispositivo. Deseja importá-los para sua nova conta?\n\nOK = Sim, importar dados antigos.\nCancelar = Não, começar conta zerada.");
+            
+            if (desejaImportar) {
+                console.log("Migrando dados locais para a nuvem...");
+                try {
+                    const parsed = JSON.parse(localData);
+                    db = { ...db, ...parsed };
+                } catch(e) {}
+            } else {
+                // Se cancelar, zera a memória RAM para não subir sujeira
+                console.log("Iniciando conta limpa.");
+                db = { months: {}, goals: [], cards: [] };
+                MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; });
+            }
+        }
+        // Salva o estado inicial na nuvem (seja importado ou zerado)
+        saveData();
+    }
     updateCalculations();
+}
+
+// Função de Salvar atualizada para o Firebase
+async function saveData() {
+    if (!currentUser) return;
+
+    const userRef = doc(firestore, "users", currentUser.uid);
+    
+    try {
+        await setDoc(userRef, db);
+        showToast();
+        updateCalculations();
+    } catch (e) {
+        console.error("Erro ao salvar na nuvem:", e);
+        alert("Erro ao salvar: Verifique sua internet.");
+    }
 }
 
 function showToast() {
     const t = document.getElementById('toast');
     if(t) {
+        t.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Salvo na Nuvem';
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 2000);
     }
 }
 
-function resetSystem() {
-    if(confirm("CUIDADO: Isso apagará TODOS os dados permanentemente. Continuar?")) {
-        localStorage.removeItem(DB_KEY);
-        db = { months: {}, goals: [] }; // Zera memória
+async function resetSystem() {
+    if(confirm("CUIDADO: Isso apagará TODOS os dados NA NUVEM permanentemente. Continuar?")) {
+        // 1. Zera a memória local
+        db = { months: {}, goals: [], cards: [] }; 
         MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; });
+        
+        // Feedback visual para o usuário não achar que travou
+        const statusToast = document.getElementById('toast');
+        if(statusToast) {
+            statusToast.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Apagando nuvem...';
+            statusToast.classList.add('show');
+        }
+
+        // 2. ESPERA o Firebase confirmar que apagou lá na nuvem
+        await saveData();
+        
+        // 3. Só agora recarrega a página
         location.reload();
     }
 }
@@ -114,27 +203,24 @@ function switchView(viewId, btn) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.mobile-item').forEach(el => el.classList.remove('active'));
     
-    // Se veio de um clique de botão, ativa ele. 
-    // Se não (ex: reload), tenta achar o botão correspondente pelo ID da view.
     if(btn) {
         btn.classList.add('active');
     } else {
-        // Tenta ativar o botão do menu lateral correspondente a esta view
         const sideBtn = document.querySelector(`.nav-item[onclick*="'${viewId}'"]`);
         if(sideBtn) sideBtn.classList.add('active');
     }
     
-    // 2. Atualiza Seções (Esconde todas e mostra a escolhida)
+    // 2. Atualiza Seções
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(`view-${viewId}`).classList.add('active');
 
-    // 3. Lógica de Título e Renderização Específica
+    // 3. Lógica de Título
     const title = document.getElementById('page-title');
     const selector = document.getElementById('month-control');
 
     if(viewId === 'monthly') {
         title.innerHTML = 'GESTÃO DE <span id="header-month-display">...</span>';
-        selector.style.display = 'block'; // Mostra seletor de mês
+        selector.style.display = 'block'; 
         renderMonthly();
     } 
     else if (viewId === 'dashboard') {
@@ -142,38 +228,35 @@ function switchView(viewId, btn) {
         selector.style.display = 'none';
         renderDashboard();
     } 
-    else if (viewId === 'cards') { // --- NOVO BLOCO ---
+    else if (viewId === 'cards') { 
         title.innerText = "MEUS CARTÕES";
-        selector.style.display = 'block'; // Mostra mês (para ver faturas passadas)
-        renderCards(); // <--- O PULO DO GATO: Renderiza os cartões!
+        selector.style.display = 'block'; 
+        renderCards();
     }
-    else { // Assume que é 'goals'
+    else { 
         title.innerText = "METAS & SONHOS";
         selector.style.display = 'none';
         renderGoals();
     }
 }
 
-// --- CONTROLE DE MUDANÇA DE MÊS ---
 function handleMonthChange() {
-    // Verifica se estamos na aba de Cartões
     if(document.getElementById('view-cards').classList.contains('active')) {
-        renderCards(); // Se estiver nos cartões, atualiza as faturas
+        renderCards();
     } 
-    // Verifica se estamos na aba Mensal
     else if(document.getElementById('view-monthly').classList.contains('active')) {
-        renderMonthly(); // Se estiver na gestão mensal, atualiza as tabelas
+        renderMonthly(); 
     }
 }
 
-// --- IMPORTAR / EXPORTAR ---
+// --- IMPORTAR / EXPORTAR (ADAPTADO) ---
 function exportData() {
     const dataStr = JSON.stringify(db, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sip_finance_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `sip_finance_cloud_backup.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -184,7 +267,7 @@ function triggerImport() { document.getElementById('import-file').click(); }
 function handleImport(input) {
     const file = input.files[0];
     if (!file) return;
-    if (!confirm("Isso substituirá TODOS os seus dados atuais. Continuar?")) {
+    if (!confirm("Isso substituirá seus dados NA NUVEM pelo arquivo. Continuar?")) {
         input.value = ''; return;
     }
     const reader = new FileReader();
@@ -193,8 +276,8 @@ function handleImport(input) {
             const parsed = JSON.parse(e.target.result);
             if (!parsed.months) throw new Error("Arquivo inválido");
             db = parsed;
-            localStorage.setItem(DB_KEY, JSON.stringify(db));
-            alert("Importação realizada com sucesso!");
+            saveData(); // Salva na nuvem
+            alert("Importação enviada para a nuvem!");
             location.reload();
         } catch (err) { alert("Erro ao importar arquivo."); }
     };
@@ -225,8 +308,6 @@ function updateSortIcons(activeCol, isAsc) {
         icon.className = 'fas fa-sort sort-icon';
         icon.style.opacity = '0.3';
     });
-    // Mapeamento simples de colunas da tabela variável
-    // 0=Data, 1=Desc, 2=Cat, 3=Val
     const colMap = { 'date': 0, 'desc': 1, 'cat': 2, 'val': 3 };
     const ths = document.querySelectorAll('#table-variable th');
     if(ths[colMap[activeCol]]) {
@@ -306,11 +387,8 @@ function renderDashboard() {
 function renderMonthly() {
     const m = document.getElementById('month-select').value;
     
-    // Atualiza Titulo
     const header = document.getElementById('header-month-display');
     if(header) header.innerText = m.toUpperCase();
-
-    // Atualiza Card
     const card = document.getElementById('month-name-display');
     if(card) card.innerText = m.toUpperCase();
     
@@ -328,12 +406,9 @@ function updateCategoryDropdown(month) {
     list.forEach(item => { if(item.cat) cats.add(item.cat); });
     
     const select = document.getElementById('filter-category');
-    // Salva seleção atual ou reseta
     const currentSelection = viewState.filter;
     
     select.innerHTML = '';
-    
-    // Opção Padrão
     const optAll = document.createElement('option');
     optAll.value = 'all'; optAll.innerText = 'Todas Categorias';
     select.appendChild(optAll);
@@ -383,23 +458,15 @@ function renderTableRows(month, type) {
         
         let displayList = originalList.map((item, index) => ({ ...item, originalIndex: index }));
         
-        // Filtro
         if (viewState.filter !== 'all') {
             displayList = displayList.filter(item => item.cat === viewState.filter);
         }
         
-        // Ordenação
         displayList.sort((a, b) => {
             let valA = a[viewState.sortCol];
             let valB = b[viewState.sortCol];
-            
-            if (viewState.sortCol === 'val') { 
-                valA = Number(valA); 
-                valB = Number(valB); 
-            } else { 
-                valA = (valA||'').toString().toLowerCase(); 
-                valB = (valB||'').toString().toLowerCase(); 
-            }
+            if (viewState.sortCol === 'val') { valA = Number(valA); valB = Number(valB); } 
+            else { valA = (valA||'').toString().toLowerCase(); valB = (valB||'').toString().toLowerCase(); }
             
             if (valA < valB) return viewState.sortAsc ? -1 : 1;
             if (valA > valB) return viewState.sortAsc ? 1 : -1;
@@ -444,24 +511,19 @@ function renderTableRows(month, type) {
     }
 }
 
-// --- MODAL DE TRANSAÇÕES ---
+// --- MODAL DE TRANSAÇÕES (Mantido COMPLETO) ---
 function openTransactionModal(type, id = null) {
     const m = document.getElementById('month-select').value;
     const modal = document.getElementById('trans-modal-overlay');
     
-    // 1. Limpeza de Campos Básicos
     document.getElementById('trans-id').value = '';
     document.getElementById('trans-desc').value = '';
     document.getElementById('trans-val').value = '';
     document.getElementById('trans-cat').value = '';
     document.getElementById('trans-paid').checked = false;
 
-    // 2. Resetar Checkboxes e Selecionar Mês Atual
-    document.querySelectorAll('.month-check input').forEach(cb => {
-        cb.checked = false;
-    });
+    document.querySelectorAll('.month-check input').forEach(cb => { cb.checked = false; });
     
-    // 3. --- LÓGICA DE TRAVAMENTO DE DATA ---
     const dateInput = document.getElementById('trans-date');
     const year = new Date().getFullYear();
     const monthIndex = MONTHS.indexOf(m); 
@@ -481,19 +543,15 @@ function openTransactionModal(type, id = null) {
         dateInput.value = minDate;
     }
 
-    // 4. Controle de Visibilidade dos Campos
     document.getElementById('field-date').style.display = (type === 'variable') ? 'block' : 'none';
     document.getElementById('field-cat').style.display = (type === 'variable') ? 'block' : 'none';
-    document.getElementById('field-method').style.display = (type === 'variable') ? 'block' : 'none'; // Campo de Pagamento
+    document.getElementById('field-method').style.display = (type === 'variable') ? 'block' : 'none'; 
     document.getElementById('field-paid').style.display = (type === 'fixed') ? 'block' : 'none';
 
-    // 5. --- RENDERIZAR OPÇÕES DE CARTÃO (PASSO E - NOVO) ---
     if (type === 'variable') {
         const cardContainer = document.getElementById('card-options-container');
         if(cardContainer) {
-            cardContainer.innerHTML = ''; // Limpa opções anteriores
-            
-            // Cria um radio button para cada cartão cadastrado
+            cardContainer.innerHTML = ''; 
             if(db.cards && db.cards.length > 0) {
                 db.cards.forEach(card => {
                     const label = document.createElement('label');
@@ -506,8 +564,6 @@ function openTransactionModal(type, id = null) {
                 });
             }
         }
-        
-        // Reset Visual: Remove 'active' de todos e marca Débito como padrão
         document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
         const debitInput = document.querySelector('input[value="debit"]');
         if(debitInput) {
@@ -515,9 +571,7 @@ function openTransactionModal(type, id = null) {
             debitInput.parentElement.classList.add('active');
         }
     }
-    // -------------------------------------------------------
 
-    // Lógica de Despesa Fixa (Meses)
     currentTransType = type;
     currentTransId = id;
     originalDesc = null; 
@@ -544,7 +598,6 @@ function openTransactionModal(type, id = null) {
         document.getElementById('field-months').style.display = 'none';
     }
 
-    // Renderiza Etiquetas de Categoria
     if (type === 'variable') {
         renderCategoryChips(id ? db.months[m][type].find(x => x.id === id)?.cat : null);
     }
@@ -555,8 +608,8 @@ function openTransactionModal(type, id = null) {
     const placeholders = { fixed: 'Ex: Conta de Luz', variable: 'Ex: Supermercado', income: 'Ex: Salário' };
     document.getElementById('trans-desc').placeholder = placeholders[type];
 
-    // Preencher campos se for EDIÇÃO
     if (id) {
+        // Correção para achar ID também no Income
         const item = db.months[m][type].find(x => x.id === id);
         if (item) {
             document.getElementById('trans-desc').value = item.desc;
@@ -565,13 +618,10 @@ function openTransactionModal(type, id = null) {
             if(type === 'variable') {
                 if(item.date) dateInput.value = item.date;
                 document.getElementById('trans-cat').value = item.cat;
-
-                // --- RECUPERAR MÉTODO DE PAGAMENTO NA EDIÇÃO ---
                 const methodToSelect = item.method || 'debit';
                 const radioToCheck = document.querySelector(`input[name="trans-method"][value="${methodToSelect}"]`);
                 if(radioToCheck) {
                     radioToCheck.checked = true;
-                    // Atualiza visual (remove active dos outros e põe neste)
                     document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
                     radioToCheck.parentElement.classList.add('active');
                 }
@@ -581,15 +631,11 @@ function openTransactionModal(type, id = null) {
             }
         }
     }
-
     modal.classList.add('open');
 }
 
-// --- FUNÇÃO AUXILIAR PARA TROCAR ESTILO DO BOTÃO DE PAGAMENTO ---
 function toggleMethodStyle(radio) {
-    // Remove a classe .active de todas as opções
     document.querySelectorAll('.method-opt').forEach(el => el.classList.remove('active'));
-    // Adiciona a classe .active apenas no pai do radio selecionado
     if(radio.checked) {
         radio.parentElement.classList.add('active');
     }
@@ -597,7 +643,6 @@ function toggleMethodStyle(radio) {
 function closeTransactionModal() {
     document.getElementById('trans-modal-overlay').classList.remove('open');
 }
-
 function toggleAllMonths() {
     const checkboxes = document.querySelectorAll('.month-check input');
     const allChecked = Array.from(checkboxes).every(c => c.checked);
@@ -606,17 +651,15 @@ function toggleAllMonths() {
 
 function saveTransactionForm() {
     const currentMonth = document.getElementById('month-select').value;
-    const type = currentTransType; // 'fixed', 'variable' ou 'income'
+    const type = currentTransType;
     const desc = document.getElementById('trans-desc').value;
     const val = Number(document.getElementById('trans-val').value);
     
-    // Captura o método de pagamento
     const methodInput = document.querySelector('input[name="trans-method"]:checked');
     const method = methodInput ? methodInput.value : 'debit'; 
 
     if(!desc || val <= 0) { alert('Preencha descrição e valor.'); return; }
 
-    // 1. LÓGICA PARA DESPESAS FIXAS
     if (type === 'fixed') {
         MONTHS.forEach(m => {
             const isChecked = document.querySelector(`.month-check input[value="${m}"]`).checked;
@@ -642,8 +685,6 @@ function saveTransactionForm() {
             }
         });
     } 
-    
-    // 2. LÓGICA PARA GASTOS VARIÁVEIS
     else if (type === 'variable') {
          if (currentTransId) {
             const idx = db.months[currentMonth][type].findIndex(x => x.id === currentTransId);
@@ -666,18 +707,15 @@ function saveTransactionForm() {
             db.months[currentMonth][type].push(newItem);
         }
     }
-
-    // 3. LÓGICA PARA ENTRADAS (ESTAVA FALTANDO ISSO AQUI!)
+    // LÓGICA PARA ENTRADAS (Mantida!)
     else if (type === 'income') {
         if (currentTransId) {
-            // Edição de Entrada
             const idx = db.months[currentMonth].income.findIndex(x => x.id === currentTransId);
             if(idx > -1) {
                 db.months[currentMonth].income[idx].desc = desc;
                 db.months[currentMonth].income[idx].val = val;
             }
         } else {
-            // Nova Entrada
             db.months[currentMonth].income.push({
                 id: Date.now() + Math.random(),
                 desc: desc,
@@ -701,8 +739,7 @@ function delRow(month, type, idx) {
 }
 
 function toggleStatus(month, idx) {
-    const current = db.months[month].fixed[idx].paid;
-    db.months[month].fixed[idx].paid = !current;
+    db.months[month].fixed[idx].paid = !db.months[month].fixed[idx].paid;
     saveData();
     renderMonthly();
 }
@@ -710,37 +747,23 @@ function toggleStatus(month, idx) {
 // --- CÁLCULOS E GRÁFICOS MINI ---
 function updateCalculations() {
     const currentMonthName = document.getElementById('month-select').value;
-    
-    // 1. Descobrir o índice do mês atual (Ex: Março é 2)
     const currentIndex = MONTHS.indexOf(currentMonthName);
-
-    // 2. Calcular o SALDO ANTERIOR (Acumulado dos meses passados)
     let previousBalance = 0;
-
-    // Loop do índice 0 até o mês anterior ao atual
+    
     for (let i = 0; i < currentIndex; i++) {
         const m = MONTHS[i];
         const d = db.months[m];
-
-        // Soma Entradas do mês passado
         const inc = d.income.reduce((a, b) => a + Number(b.val), 0);
-        
-        // Soma Saídas do mês passado (Fixas + Variáveis Débito)
         const expFixed = d.fixed.reduce((a, b) => a + Number(b.val), 0);
         const expVar = d.variable.reduce((a, b) => {
             if (!b.method || b.method === 'debit') return a + Number(b.val);
             return a;
         }, 0);
-
-        // O que sobrou nesse mês acumula para o próximo
         previousBalance += (inc - (expFixed + expVar));
     }
 
-    // 3. Calcular dados do MÊS ATUAL (Como já fazia antes)
     const currentData = db.months[currentMonthName];
-    
     const currentInc = currentData.income.reduce((a, b) => a + Number(b.val), 0);
-    
     const currentFixed = currentData.fixed.reduce((a, b) => a + Number(b.val), 0);
     const currentVar = currentData.variable.reduce((a, b) => {
         if (!b.method || b.method === 'debit') return a + Number(b.val);
@@ -748,16 +771,10 @@ function updateCalculations() {
     }, 0);
     
     const currentExp = currentFixed + currentVar;
-
-    // 4. Resultado Final
-    // Saldo em Caixa = (O que sobrou dos meses anteriores) + (O que ganhou este mês) - (O que gastou este mês)
     const totalBalance = previousBalance + currentInc - currentExp;
 
-    // 5. Atualizar na Tela
-    document.getElementById('m-prev-balance').innerText = formatBRL(previousBalance); // O novo campo pequeno
-    document.getElementById('m-balance').innerText = formatBRL(totalBalance); // O saldo grandão
-    
-    // As linhas de + e - continuam mostrando apenas o desempenho DO MÊS (para você saber se está no vermelho naquele mês específico)
+    document.getElementById('m-prev-balance').innerText = formatBRL(previousBalance);
+    document.getElementById('m-balance').innerText = formatBRL(totalBalance);
     document.getElementById('m-inc').innerText = formatBRL(currentInc);
     document.getElementById('m-exp').innerText = formatBRL(currentExp);
 
@@ -790,7 +807,7 @@ function updateCategoryChart(data) {
     });
 }
 
-// --- METAS (GOALS) ---
+// --- METAS (Mantido) ---
 function renderGoals() {
     const container = document.getElementById('goals-container');
     container.innerHTML = '';
@@ -833,19 +850,15 @@ function renderGoals() {
         container.appendChild(card);
     });
 }
-
 function openGoalModal(id = null) {
     const modal = document.getElementById('goal-modal-overlay');
     document.getElementById('goal-name').value = '';
     document.getElementById('goal-target').value = '';
     document.getElementById('goal-current').value = '';
     document.getElementById('goal-date').value = '';
-    
-    // Reset ícones
     selectedGoalIcon = 'fa-bullseye';
     document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('active'));
     document.querySelectorAll('.icon-option')[0].classList.add('active');
-
     currentGoalId = id;
     if (id) {
         const g = db.goals.find(x => x.id === id);
@@ -855,187 +868,109 @@ function openGoalModal(id = null) {
             document.getElementById('goal-target').value = g.target;
             document.getElementById('goal-current').value = g.current;
             document.getElementById('goal-date').value = g.date || '';
-            
             if(g.icon) {
                 selectedGoalIcon = g.icon;
                 document.querySelectorAll('.icon-option').forEach(e => {
-                   e.classList.remove('active');
-                   if(e.innerHTML.includes(g.icon)) e.classList.add('active');
+                    e.classList.remove('active');
+                    if(e.innerHTML.includes(g.icon)) e.classList.add('active');
                 });
             }
         }
     } else { document.getElementById('modal-title').innerText = "Nova Meta"; }
     modal.classList.add('open');
 }
-
 function closeGoalModal() { document.getElementById('goal-modal-overlay').classList.remove('open'); }
 function selectIcon(el, icon) { selectedGoalIcon = icon; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('active')); el.classList.add('active'); }
-
 function saveGoalForm() {
     const name = document.getElementById('goal-name').value;
     const target = Number(document.getElementById('goal-target').value);
     const current = Number(document.getElementById('goal-current').value);
     const date = document.getElementById('goal-date').value;
-    
     if (!name || target <= 0) { alert("Preencha corretamente."); return; }
-    
     const newGoal = { id: currentGoalId || Date.now(), name, target, current, date, icon: selectedGoalIcon };
     if (currentGoalId) { const idx = db.goals.findIndex(g => g.id === currentGoalId); if (idx > -1) db.goals[idx] = newGoal; }
     else db.goals.push(newGoal);
-    
     saveData(); renderGoals(); closeGoalModal();
 }
 function deleteGoal(id) { if(confirm("Excluir meta?")) { const idx = db.goals.findIndex(g => g.id === id); if(idx > -1) db.goals.splice(idx, 1); saveData(); renderGoals(); } }
 
-// --- LÓGICA DE CATEGORIAS (CHIPS) ---
-
+// --- CHIPS ---
 function renderCategoryChips(currentValue = null) {
     const container = document.getElementById('category-chips-container');
     const input = document.getElementById('trans-cat');
     container.innerHTML = '';
-
-    // 1. Renderiza as Padrões
     DEFAULT_CATEGORIES.forEach(cat => {
         const chip = document.createElement('div');
         chip.className = 'chip';
-        // Se o valor atual for igual a esta categoria, marca como ativo
         if (currentValue === cat.name) chip.classList.add('active');
-        
         chip.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.name}`;
-        
-        // Ao clicar: preenche o input e muda visual do chip
         chip.onclick = () => {
             input.value = cat.name;
-            // Remove active de todos e adiciona neste
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
         };
-        
         container.appendChild(chip);
     });
-
-    // 2. Listener no Input para desmarcar chips se o usuário digitar algo diferente
     input.onkeyup = function() {
         const val = this.value;
         const chips = document.querySelectorAll('.chip');
-        let found = false;
-        
         chips.forEach(c => {
             c.classList.remove('active');
-            if(c.innerText.trim() === val) {
-                c.classList.add('active');
-                found = true;
-            }
+            if(c.innerText.trim() === val) c.classList.add('active');
         });
     };
 }
 
 // --- MENU MOBILE ---
-
 function toggleMobileMenu() {
     const menu = document.getElementById('mobile-menu-overlay');
-    // Se já estiver aberto, fecha. Se fechado, abre.
-    if (menu.classList.contains('open')) {
-        closeMobileMenu();
-    } else {
-        menu.classList.add('open');
-    }
+    if (menu.classList.contains('open')) closeMobileMenu();
+    else menu.classList.add('open');
 }
+function closeMobileMenu() { document.getElementById('mobile-menu-overlay').classList.remove('open'); }
 
-function closeMobileMenu() {
-    document.getElementById('mobile-menu-overlay').classList.remove('open');
-}
-
-// --- LÓGICA DE CARTÕES ---
-
+// --- CARTÕES (Mantido com Lógica de Fatura Inteligente) ---
 function openCardModal(id = null) {
-    currentCardId = id; // Define se é edição ou novo
+    currentCardId = id; 
     const modal = document.getElementById('card-modal-overlay');
-    
-    // Limpa campos
     document.getElementById('card-name').value = '';
     document.getElementById('card-limit').value = '';
     document.getElementById('card-closing').value = '';
-    
-    // Reseta cor visualmente
     selectCardColor('#111'); 
-
-    // Se for EDIÇÃO, preenche os dados
     if (id) {
         const card = db.cards.find(c => c.id === id);
         if (card) {
             document.getElementById('card-name').value = card.name;
             document.getElementById('card-limit').value = card.limit;
             document.getElementById('card-closing').value = card.closing;
-            
-            // Marca a cor selecionada. 
-            // Truque: Se a cor não for uma das bolinhas padrões, marcamos o botão de "Palette"
             let colorBtn = document.querySelector(`.color-opt[style*="${card.color}"]`);
-            if (!colorBtn) {
-                // Se não achou nas padrões, marca o seletor personalizado
-                colorBtn = document.getElementById('custom-picker-btn');
-                // E atualiza o value do input invisível para a cor certa
-                colorBtn.querySelector('input').value = card.color;
-            }
-            
+            if (!colorBtn) { colorBtn = document.getElementById('custom-picker-btn'); colorBtn.querySelector('input').value = card.color; }
             selectCardColor(card.color, colorBtn);
         }
     }
-
     modal.classList.add('open');
 }
-function closeCardModal() {
-    document.getElementById('card-modal-overlay').classList.remove('open');
+function closeCardModal() { document.getElementById('card-modal-overlay').classList.remove('open'); }
+function selectCardColor(c, el) { 
+    selectedCardColor = c; 
+    document.querySelectorAll('.color-opt').forEach(el => { el.style.border = '2px solid transparent'; el.style.transform = 'scale(1)'; });
+    document.querySelectorAll('.color-picker-wrapper').forEach(el => { el.style.border = '2px solid transparent'; el.style.transform = 'scale(1)'; });
+    if(el) { el.style.border = '2px solid white'; el.style.transform = 'scale(1.1)'; }
 }
-function selectCardColor(c) {
-    selectedCardColor = c;
-    // Feedback visual simples
-    document.querySelectorAll('.color-opt').forEach(el => el.style.border = 'none');
-    event.target.style.border = '2px solid white';
-}
-
 function saveCardForm() {
     const name = document.getElementById('card-name').value;
     const limit = Number(document.getElementById('card-limit').value);
     const closing = document.getElementById('card-closing').value;
-    
     if(!name) return alert("Nome obrigatório");
-
-    const cardData = {
-        name,
-        limit,
-        closing,
-        color: selectedCardColor
-    };
-
-    if (currentCardId) {
-        // --- MODO EDIÇÃO ---
-        const idx = db.cards.findIndex(c => c.id === currentCardId);
-        if (idx > -1) {
-            // Mantém o ID original, atualiza o resto
-            db.cards[idx] = { ...db.cards[idx], ...cardData };
-        }
-    } else {
-        // --- MODO CRIAÇÃO ---
-        db.cards.push({
-            id: 'card_' + Date.now(),
-            ...cardData
-        });
-    }
-
-    saveData();
-    renderCards();
-    closeCardModal();
+    const cardData = { name, limit, closing, color: selectedCardColor };
+    if (currentCardId) { const idx = db.cards.findIndex(c => c.id === currentCardId); if (idx > -1) db.cards[idx] = { ...db.cards[idx], ...cardData }; }
+    else { db.cards.push({ id: 'card_' + Date.now(), ...cardData }); }
+    saveData(); renderCards(); closeCardModal();
 }
-
 function deleteCard(id) {
-    if(confirm("Tem certeza que deseja excluir este cartão? As despesas antigas continuarão salvas, mas você não poderá selecionar este cartão para novos gastos.")) {
+    if(confirm("Tem certeza que deseja excluir este cartão?")) {
         const idx = db.cards.findIndex(c => c.id === id);
-        if(idx > -1) {
-            db.cards.splice(idx, 1);
-            saveData();
-            renderCards();
-        }
+        if(idx > -1) { db.cards.splice(idx, 1); saveData(); renderCards(); }
     }
 }
 
@@ -1046,8 +981,6 @@ function renderCards() {
     // 1. Identificar Mês Atual e Mês Anterior
     const currentMonthName = document.getElementById('month-select').value;
     const currentIdx = MONTHS.indexOf(currentMonthName);
-    
-    // Pega o índice do anterior (se for Janeiro [0], volta para Dezembro [11])
     const prevIdx = (currentIdx - 1 + 12) % 12; 
     const prevMonthName = MONTHS[prevIdx];
     
@@ -1060,20 +993,15 @@ function renderCards() {
         const closingDay = Number(card.closing) || 31; // Se não tiver dia, assume fim do mês
 
         // --- CÁLCULO DA FATURA INTELIGENTE ---
-        
-        // Parte 1: Gastos do Mês Passado (DEPOIS do fechamento)
-        // Ex: Se fecha dia 20, pega gastos do dia 21 até 31 do mês passado
         const prevMonthTotal = db.months[prevMonthName].variable
             .filter(item => {
                 if (item.method !== card.id) return false;
                 if (!item.date) return false;
-                const day = parseInt(item.date.split('-')[2]); // Pega o dia da data (YYYY-MM-DD)
+                const day = parseInt(item.date.split('-')[2]);
                 return day > closingDay;
             })
             .reduce((sum, item) => sum + Number(item.val), 0);
 
-        // Parte 2: Gastos do Mês Atual (ANTES ou NO dia do fechamento)
-        // Ex: Pega gastos do dia 01 até 20 deste mês
         const currentMonthTotal = db.months[currentMonthName].variable
             .filter(item => {
                 if (item.method !== card.id) return false;
@@ -1083,13 +1011,7 @@ function renderCards() {
             })
             .reduce((sum, item) => sum + Number(item.val), 0);
 
-        // Fatura Real = O que virou do mês passado + O que gastei neste mês até fechar
         const invoiceTotal = prevMonthTotal + currentMonthTotal;
-        // -------------------------------------
-
-        // Para o limite disponível, precisamos somar TUDO que ainda não foi pago no cartão globalmente?
-        // Simplificação: Vamos considerar Limite - Fatura Atual para facilitar
-        // (Num app real, precisaria varrer o histórico todo, mas para PWA simples isso resolve 90%)
         const available = card.limit - invoiceTotal;
         const pct = Math.min(100, (invoiceTotal / card.limit) * 100);
 
@@ -1105,7 +1027,6 @@ function renderCards() {
                     <button onclick="deleteCard('${card.id}')" class="btn-card-action" title="Excluir"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-            
             <div style="margin-top:20px;">
                 <div style="font-size:0.8rem; opacity:0.9;">
                     Fatura de ${currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)}
@@ -1113,7 +1034,6 @@ function renderCards() {
                 </div>
                 <div style="font-size:1.5rem; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${formatBRL(invoiceTotal)}</div>
             </div>
-            
             <div style="margin-top:15px;">
                 <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:5px; opacity: 0.9;">
                     <span>Limite Usado ${pct.toFixed(0)}%</span>
@@ -1121,7 +1041,6 @@ function renderCards() {
                 </div>
                 <div class="progress-bg" style="background: rgba(255,255,255,0.2);"><div class="progress-fill" style="width:${pct}%; background:#fff; box-shadow: 0 0 10px rgba(255,255,255,0.5);"></div></div>
             </div>
-            
             <div style="margin-top:15px; text-align:right;">
                 <button onclick="payInvoice('${card.id}', ${invoiceTotal})" class="btn-pay-invoice">Pagar Fatura</button>
             </div>
@@ -1133,25 +1052,16 @@ function renderCards() {
 function payInvoice(cardId, amount) {
     if(amount <= 0) return alert("Fatura zerada!");
     const currentMonth = document.getElementById('month-select').value;
-    
     if(confirm(`Deseja lançar um pagamento de ${formatBRL(amount)} agora? Isso vai descontar do seu saldo.`)) {
-        // Cria uma despesa "Débito" representando o pagamento da fatura
         const cardName = db.cards.find(c => c.id === cardId).name;
-        
         db.months[currentMonth].variable.push({
             id: Date.now(),
             desc: `Pagamento Fatura ${cardName}`,
             val: amount,
             date: new Date().toISOString().split('T')[0],
             cat: 'Pagamentos',
-            method: 'debit' // Importante: ISSO desconta do saldo
+            method: 'debit'
         });
-
-        // Opcional: Você poderia "arquivar" os gastos originais do cartão para não somar na próxima fatura, 
-        // mas na lógica simplificada por Mês, basta criar o débito. 
-        // O visual da fatura continuará mostrando o total gasto no cartão naquele mês, 
-        // mas o saldo geral estará correto (Gastos Cartão [Ignorado] + Pagamento Fatura [Descontado]).
-        
         saveData();
         renderMonthly();
         renderCards();
