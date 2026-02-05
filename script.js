@@ -606,88 +606,83 @@ function toggleAllMonths() {
 
 function saveTransactionForm() {
     const currentMonth = document.getElementById('month-select').value;
-    const type = currentTransType;
+    const type = currentTransType; // 'fixed', 'variable' ou 'income'
     const desc = document.getElementById('trans-desc').value;
     const val = Number(document.getElementById('trans-val').value);
     
-    // Captura o método de pagamento (radio button marcado)
-    // Se for 'debit', é débito. Se for um ID numérico, é cartão.
+    // Captura o método de pagamento
     const methodInput = document.querySelector('input[name="trans-method"]:checked');
     const method = methodInput ? methodInput.value : 'debit'; 
 
     if(!desc || val <= 0) { alert('Preencha descrição e valor.'); return; }
 
-    // --- LÓGICA PARA DESPESAS FIXAS (EM LOTE) ---
+    // 1. LÓGICA PARA DESPESAS FIXAS
     if (type === 'fixed') {
-        // Percorre TODOS os meses para sincronizar
         MONTHS.forEach(m => {
             const isChecked = document.querySelector(`.month-check input[value="${m}"]`).checked;
             const list = db.months[m].fixed;
-            
-            // Tenta encontrar o item neste mês (Pelo ID se for o mês atual, ou pelo Nome Original nos outros)
-            // Isso garante que a gente edite o item certo mesmo se o nome mudar
             let idx = -1;
             
             if (currentTransId && m === currentMonth) {
-                // No mês atual, usa o ID exato
                 idx = list.findIndex(x => x.id === currentTransId);
             } else if (originalDesc) {
-                // Nos outros meses, procura pelo nome antigo
                 idx = list.findIndex(x => x.desc === originalDesc);
             }
 
             if (isChecked) {
-                // SE O MÊS ESTÁ MARCADO: Atualiza ou Cria
                 if (idx > -1) {
-                    // Atualiza existente
                     list[idx].desc = desc;
                     list[idx].val = val;
-                    // Só atualiza o status de "Pago" se for o mês atual (senão bagunça o controle dos outros meses)
-                    if (m === currentMonth) {
-                        list[idx].paid = document.getElementById('trans-paid').checked;
-                    }
+                    if (m === currentMonth) list[idx].paid = document.getElementById('trans-paid').checked;
                 } else {
-                    // Não existe ainda, então cria
-                    list.push({
-                        id: Date.now() + Math.random(),
-                        desc: desc,
-                        val: val,
-                        paid: false
-                    });
+                    list.push({ id: Date.now() + Math.random(), desc: desc, val: val, paid: false });
                 }
             } else {
-                // SE O MÊS ESTÁ DESMARCADO: Remove se existir
-                if (idx > -1) {
-                    list.splice(idx, 1);
-                }
+                if (idx > -1) list.splice(idx, 1);
             }
         });
     } 
     
-    // --- LÓGICA PARA VARIÁVEIS E ENTRADAS (SIMPLES) ---
-   if (type === 'variable') {
+    // 2. LÓGICA PARA GASTOS VARIÁVEIS
+    else if (type === 'variable') {
          if (currentTransId) {
-            // Edição...
             const idx = db.months[currentMonth][type].findIndex(x => x.id === currentTransId);
             if(idx > -1) {
-                // Atualiza campos
                 db.months[currentMonth][type][idx].desc = desc;
                 db.months[currentMonth][type][idx].val = val;
                 db.months[currentMonth][type][idx].date = document.getElementById('trans-date').value;
                 db.months[currentMonth][type][idx].cat = document.getElementById('trans-cat').value || 'Geral';
-                db.months[currentMonth][type][idx].method = method; // Salva o método!
+                db.months[currentMonth][type][idx].method = method; 
             }
         } else {
-            // Criação...
             const newItem = {
                 id: Date.now() + Math.random(),
                 desc: desc,
                 val: val,
                 date: document.getElementById('trans-date').value,
                 cat: document.getElementById('trans-cat').value || 'Geral',
-                method: method // Salva o método!
+                method: method 
             };
             db.months[currentMonth][type].push(newItem);
+        }
+    }
+
+    // 3. LÓGICA PARA ENTRADAS (ESTAVA FALTANDO ISSO AQUI!)
+    else if (type === 'income') {
+        if (currentTransId) {
+            // Edição de Entrada
+            const idx = db.months[currentMonth].income.findIndex(x => x.id === currentTransId);
+            if(idx > -1) {
+                db.months[currentMonth].income[idx].desc = desc;
+                db.months[currentMonth].income[idx].val = val;
+            }
+        } else {
+            // Nova Entrada
+            db.months[currentMonth].income.push({
+                id: Date.now() + Math.random(),
+                desc: desc,
+                val: val
+            });
         }
     }
 
@@ -714,28 +709,59 @@ function toggleStatus(month, idx) {
 
 // --- CÁLCULOS E GRÁFICOS MINI ---
 function updateCalculations() {
-    const m = document.getElementById('month-select').value;
-    const d = db.months[m];
+    const currentMonthName = document.getElementById('month-select').value;
     
-    const inc = d.income.reduce((a,b)=>a+Number(b.val),0);
+    // 1. Descobrir o índice do mês atual (Ex: Março é 2)
+    const currentIndex = MONTHS.indexOf(currentMonthName);
+
+    // 2. Calcular o SALDO ANTERIOR (Acumulado dos meses passados)
+    let previousBalance = 0;
+
+    // Loop do índice 0 até o mês anterior ao atual
+    for (let i = 0; i < currentIndex; i++) {
+        const m = MONTHS[i];
+        const d = db.months[m];
+
+        // Soma Entradas do mês passado
+        const inc = d.income.reduce((a, b) => a + Number(b.val), 0);
+        
+        // Soma Saídas do mês passado (Fixas + Variáveis Débito)
+        const expFixed = d.fixed.reduce((a, b) => a + Number(b.val), 0);
+        const expVar = d.variable.reduce((a, b) => {
+            if (!b.method || b.method === 'debit') return a + Number(b.val);
+            return a;
+        }, 0);
+
+        // O que sobrou nesse mês acumula para o próximo
+        previousBalance += (inc - (expFixed + expVar));
+    }
+
+    // 3. Calcular dados do MÊS ATUAL (Como já fazia antes)
+    const currentData = db.months[currentMonthName];
     
-    // GASTOS FIXOS: Sempre descontam (assumindo que saem da conta/boleto)
-    const expFixed = d.fixed.reduce((a,b)=>a+Number(b.val),0);
+    const currentInc = currentData.income.reduce((a, b) => a + Number(b.val), 0);
     
-    // GASTOS VARIÁVEIS: Só desconta se method for 'debit' (ou undefined para retrocompatibilidade)
-    const expVariable = d.variable.reduce((a,b) => {
-        if (!b.method || b.method === 'debit') {
-            return a + Number(b.val);
-        }
-        return a; // Se for cartão, não soma no Total Exp do Dashboard
+    const currentFixed = currentData.fixed.reduce((a, b) => a + Number(b.val), 0);
+    const currentVar = currentData.variable.reduce((a, b) => {
+        if (!b.method || b.method === 'debit') return a + Number(b.val);
+        return a;
     }, 0);
     
-    const totalExp = expFixed + expVariable;
+    const currentExp = currentFixed + currentVar;
+
+    // 4. Resultado Final
+    // Saldo em Caixa = (O que sobrou dos meses anteriores) + (O que ganhou este mês) - (O que gastou este mês)
+    const totalBalance = previousBalance + currentInc - currentExp;
+
+    // 5. Atualizar na Tela
+    document.getElementById('m-prev-balance').innerText = formatBRL(previousBalance); // O novo campo pequeno
+    document.getElementById('m-balance').innerText = formatBRL(totalBalance); // O saldo grandão
     
-    document.getElementById('m-balance').innerText = formatBRL(inc - totalExp);
-    document.getElementById('m-inc').innerText = formatBRL(inc);
-    document.getElementById('m-exp').innerText = formatBRL(totalExp);
-    updateCategoryChart(d);
+    // As linhas de + e - continuam mostrando apenas o desempenho DO MÊS (para você saber se está no vermelho naquele mês específico)
+    document.getElementById('m-inc').innerText = formatBRL(currentInc);
+    document.getElementById('m-exp').innerText = formatBRL(currentExp);
+
+    updateCategoryChart(currentData);
 }
 
 function updateCategoryChart(data) {
@@ -1017,19 +1043,53 @@ function renderCards() {
     const container = document.getElementById('cards-container');
     container.innerHTML = '';
     
-    const currentMonth = document.getElementById('month-select').value;
+    // 1. Identificar Mês Atual e Mês Anterior
+    const currentMonthName = document.getElementById('month-select').value;
+    const currentIdx = MONTHS.indexOf(currentMonthName);
+    
+    // Pega o índice do anterior (se for Janeiro [0], volta para Dezembro [11])
+    const prevIdx = (currentIdx - 1 + 12) % 12; 
+    const prevMonthName = MONTHS[prevIdx];
     
     if(!db.cards || db.cards.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1; text-align:center; padding: 20px;">Nenhum cartão cadastrado. Clique em "+" para adicionar.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted); grid-column:1/-1; text-align:center; padding: 20px;">Nenhum cartão cadastrado.</p>';
         return;
     }
 
     db.cards.forEach(card => {
-        // Calcular Fatura
-        const invoiceTotal = db.months[currentMonth].variable
-            .filter(item => item.method === card.id)
+        const closingDay = Number(card.closing) || 31; // Se não tiver dia, assume fim do mês
+
+        // --- CÁLCULO DA FATURA INTELIGENTE ---
+        
+        // Parte 1: Gastos do Mês Passado (DEPOIS do fechamento)
+        // Ex: Se fecha dia 20, pega gastos do dia 21 até 31 do mês passado
+        const prevMonthTotal = db.months[prevMonthName].variable
+            .filter(item => {
+                if (item.method !== card.id) return false;
+                if (!item.date) return false;
+                const day = parseInt(item.date.split('-')[2]); // Pega o dia da data (YYYY-MM-DD)
+                return day > closingDay;
+            })
             .reduce((sum, item) => sum + Number(item.val), 0);
 
+        // Parte 2: Gastos do Mês Atual (ANTES ou NO dia do fechamento)
+        // Ex: Pega gastos do dia 01 até 20 deste mês
+        const currentMonthTotal = db.months[currentMonthName].variable
+            .filter(item => {
+                if (item.method !== card.id) return false;
+                if (!item.date) return false;
+                const day = parseInt(item.date.split('-')[2]);
+                return day <= closingDay;
+            })
+            .reduce((sum, item) => sum + Number(item.val), 0);
+
+        // Fatura Real = O que virou do mês passado + O que gastei neste mês até fechar
+        const invoiceTotal = prevMonthTotal + currentMonthTotal;
+        // -------------------------------------
+
+        // Para o limite disponível, precisamos somar TUDO que ainda não foi pago no cartão globalmente?
+        // Simplificação: Vamos considerar Limite - Fatura Atual para facilitar
+        // (Num app real, precisaria varrer o histórico todo, mas para PWA simples isso resolve 90%)
         const available = card.limit - invoiceTotal;
         const pct = Math.min(100, (invoiceTotal / card.limit) * 100);
 
@@ -1037,7 +1097,6 @@ function renderCards() {
         cardEl.className = 'credit-card-widget';
         cardEl.style.background = `linear-gradient(135deg, ${card.color}, #000)`;
         
-        // ADICIONEI OS BOTÕES DE AÇÃO AQUI EM CIMA:
         cardEl.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:start;">
                 <div style="font-weight:bold; font-size:1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${card.name}</div>
@@ -1048,7 +1107,10 @@ function renderCards() {
             </div>
             
             <div style="margin-top:20px;">
-                <div style="font-size:0.8rem; opacity:0.9;">Fatura Atual (${currentMonth})</div>
+                <div style="font-size:0.8rem; opacity:0.9;">
+                    Fatura de ${currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)}
+                    <br><span style="font-size:0.7rem; opacity:0.7;">(Fecha dia ${closingDay})</span>
+                </div>
                 <div style="font-size:1.5rem; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${formatBRL(invoiceTotal)}</div>
             </div>
             
