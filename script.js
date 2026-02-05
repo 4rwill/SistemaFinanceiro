@@ -133,7 +133,7 @@ function switchView(viewId, btn) {
     const selector = document.getElementById('month-control');
 
     if(viewId === 'monthly') {
-        title.innerHTML = 'GESTÃO DE <span id="month-name-display">...</span>';
+        title.innerHTML = 'GESTÃO DE <span id="header-month-display">...</span>';
         selector.style.display = 'block'; // Mostra seletor de mês
         renderMonthly();
     } 
@@ -305,7 +305,14 @@ function renderDashboard() {
 
 function renderMonthly() {
     const m = document.getElementById('month-select').value;
-    document.getElementById('month-name-display').innerText = m.toUpperCase();
+    
+    // Atualiza Titulo
+    const header = document.getElementById('header-month-display');
+    if(header) header.innerText = m.toUpperCase();
+
+    // Atualiza Card
+    const card = document.getElementById('month-name-display');
+    if(card) card.innerText = m.toUpperCase();
     
     updateCategoryDropdown(m);
     renderTableRows(m, 'fixed');
