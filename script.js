@@ -43,19 +43,27 @@ window.onload = function() {
 
     // Ouve se o usuário entrou ou saiu
     onAuthStateChanged(auth, async (user) => {
+        const loginScreen = document.getElementById('login-screen'); // Pega o elemento
+
         if (user) {
             // USUÁRIO LOGADO
             currentUser = user;
-            document.getElementById('login-screen').style.display = 'none'; // Some a tela de login
+            
+            // CORREÇÃO: Só tenta esconder se o elemento existir
+            if (loginScreen) loginScreen.style.display = 'none'; 
+            
             console.log("Logado como:", user.email);
             
-            await loadDataCloud(); // Carrega da nuvem
-            
-            setupUI(); // Renderiza a tela
+            await loadDataCloud(); 
+            setupUI();
         } else {
             // USUÁRIO DESLOGADO
             currentUser = null;
-            document.getElementById('login-screen').style.display = 'flex'; // Mostra tela de login
+            
+            // CORREÇÃO: Só tenta mostrar se o elemento existir
+            if (loginScreen) loginScreen.style.display = 'flex'; 
+            
+            const statusText = document.getElementById('login-status');
             if(statusText) statusText.innerText = "";
         }
     });
