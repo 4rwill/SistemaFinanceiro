@@ -26,8 +26,13 @@
             <div class="nav-item active" onclick="switchView('dashboard', this)">
                 <i class="fas fa-chart-pie"></i> Panorama
             </div>
+           
             <div class="nav-item" onclick="switchView('monthly', this)">
                 <i class="fas fa-calendar-check"></i> Gestão Mensal 
+            </div>
+
+            <div class="nav-item" onclick="switchView('cards', this)">
+                <i class="fas fa-credit-card"></i> Cartões
             </div>
             
             <div class="nav-item" onclick="switchView('goals', this)">
@@ -57,19 +62,20 @@
             <i class="fas fa-chart-pie"></i>
             <span>Geral</span>
         </div>
+        
         <div class="mobile-item" onclick="switchView('monthly', this)">
             <i class="fas fa-calendar-check"></i>
             <span>Mensal</span>
         </div>
-        
+
         <div class="mobile-fab" onclick="openTransactionModal('variable')">
             <i class="fas fa-plus"></i>
         </div>
 
-        <div class="mobile-item" onclick="switchView('goals', this)">
-            <i class="fas fa-bullseye"></i>
-            <span>Metas</span>
+        <div class="mobile-item" onclick="switchView('cards', this)">
+             <i class="fas fa-credit-card"></i> Cartões
         </div>
+
         <div class="mobile-item" onclick="toggleMobileMenu()">
             <i class="fas fa-bars"></i>
             <span>Menu</span>
@@ -81,7 +87,7 @@
             <h2 id="page-title">VISÃO GERAL</h2>
             
             <div id="month-control" class="select-wrapper" style="display: none;">
-                <select id="month-select" onchange="renderMonthly()">
+                    <select id="month-select" onchange="handleMonthChange()">
                     <option value="janeiro">JANEIRO</option>
                     <option value="fevereiro">FEVEREIRO</option>
                     <option value="marco">MARÇO</option>
@@ -128,13 +134,20 @@
                 <div class="card accent" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
                     <div>
                         <div class="kpi-label">Saldo de <span id="month-name-display">...</span></div>
+                        
                         <div class="kpi-val" id="m-balance">R$ 0,00</div>
+                        
+                        <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 5px;">
+                            Vindo de antes: <span id="m-prev-balance" style="font-weight: bold;">R$ 0,00</span>
+                        </div>
                     </div>
+
                     <div style="text-align: right;">
-                        <div style="font-size: 0.9rem; color: var(--success);">+ <span id="m-inc">0</span></div>
-                        <div style="font-size: 0.9rem; color: var(--danger);">- <span id="m-exp">0</span></div>
+                        <div style="font-size: 0.9rem; color: var(--success);" title="Ganho neste mês">+ <span id="m-inc">0</span></div>
+                        <div style="font-size: 0.9rem; color: var(--danger);" title="Gasto neste mês">- <span id="m-exp">0</span></div>
                     </div>
                 </div>
+                
                 <div class="card" style="display: flex; align-items: center; justify-content: center;">
                     <canvas id="catChart" style="max-height: 100px;"></canvas>
                 </div>
@@ -205,6 +218,57 @@
                 </div>
             </div>
         </section>
+
+        <section id="view-cards" class="view-section">
+            <div class="panel-header" style="margin-bottom: 20px; border-bottom: none;">
+                <div>
+                    <h2 style="margin-bottom: 5px;">Meus Cartões</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Gerencie limites e faturas</p>
+                </div>
+                <button class="btn-icon" style="width: auto; padding: 0 15px; background: var(--primary); color: #0f172a; font-weight: bold;" onclick="openCardModal()">
+                    <i class="fas fa-plus"></i> Novo Cartão
+                </button>
+            </div>
+
+            <div id="cards-container" class="cards-grid"></div>
+        </section>
+
+        <div id="card-modal-overlay" class="modal-overlay">
+            <div class="modal-box">
+                <h3>Novo Cartão de Crédito</h3>
+                <div class="form-group">
+                    <label>Nome do Cartão</label>
+                    <input type="text" id="card-name" class="input-clean" placeholder="Ex: Nubank">
+                </div>
+                <div class="form-group">
+                    <label>Limite (R$)</label>
+                    <input type="number" id="card-limit" class="input-clean" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label>Dia do Fechamento (Fatura)</label>
+                    <input type="number" id="card-closing" class="input-clean" placeholder="Dia (ex: 5)" max="31">
+                </div>
+                <div class="form-group">
+                    <label>Cor do Cartão</label>
+                    <div class="color-selector">
+                        <div class="color-opt" style="background:#820ad1;" onclick="selectCardColor('#820ad1', this)"></div>
+                        <div class="color-opt" style="background:#ff7a00;" onclick="selectCardColor('#ff7a00', this)"></div>
+                        <div class="color-opt" style="background:#0051fff5;" onclick="selectCardColor('#0051fff5', this)"></div>
+                        <div class="color-opt" style="background:#111;" onclick="selectCardColor('#111', this)"></div>
+                        <div class="color-opt" style="background:#10b981;" onclick="selectCardColor('#10b981', this)"></div>
+                        <div class="color-opt" style="background:#ef4444;" onclick="selectCardColor('#ef4444', this)"></div>
+
+                        <div class="color-picker-wrapper" id="custom-picker-btn">
+                            <input type="color" oninput="selectCardColor(this.value, this.parentElement)">
+                        </div>
+                    </div> 
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button onclick="saveCardForm()" class="btn-save">Salvar</button>
+                    <button onclick="closeCardModal()" class="btn-cancel">Cancelar</button>
+                </div>
+            </div>
+        </div>
 
         <section id="view-goals" class="view-section">
             <div class="panel-header" style="margin-bottom: 20px; border-bottom: none;">
@@ -280,6 +344,17 @@
                 <input type="date" id="trans-date" class="input-clean" style="border-bottom: 1px solid #334155; padding: 10px 0;">
             </div>
 
+            <div class="form-group" id="field-method" style="display:none;">
+                <label>Forma de Pagamento</label>
+                <div class="method-selector">
+                    <label class="method-opt active">
+                        <input type="radio" name="trans-method" value="debit" checked onchange="toggleMethodStyle(this)">
+                        <i class="fas fa-wallet"></i> Débito / Dinheiro
+                    </label>
+                    <div id="card-options-container" style="display:contents;"></div>
+                </div>
+            </div>
+
             <div class="form-group" id="field-cat" style="display:none;">
                 <label>Categoria</label>
                 <input type="text" id="trans-cat" class="input-clean" placeholder="Selecione ou digite..." style="border-bottom: 1px solid #334155; padding: 10px 0;">
@@ -339,8 +414,21 @@
     <div id="mobile-menu-overlay" class="modal-overlay" style="align-items: flex-end;" onclick="closeMobileMenu()">
         <div class="mobile-drawer" onclick="event.stopPropagation()">
             <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 20px auto;"></div>
-            <h3 style="margin-bottom: 20px; color: var(--primary);">Menu do Sistema</h3>
             
+            <h3 style="margin-bottom: 20px; color: var(--primary);">Navegação & Opções</h3>
+            
+            <div class="drawer-item" onclick="closeMobileMenu(); switchView('goals', null)">
+                <div class="icon-box" style="background: rgba(251, 191, 36, 0.1); color: var(--primary);">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 600;">Metas & Sonhos</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Acompanhe seus objetivos</div>
+                </div>
+            </div>
+
+            <div style="width: 100%; height: 1px; background: rgba(255,255,255,0.05); margin: 15px 0;"></div>
+
             <div class="drawer-item" onclick="exportData()">
                 <div class="icon-box"><i class="fas fa-file-export"></i></div>
                 <div>
@@ -357,7 +445,7 @@
                 </div>
             </div>
 
-            <div class="drawer-item" onclick="resetSystem()" style="border-top: 1px solid rgba(255,255,255,0.05); margin-top: 10px; padding-top: 20px;">
+            <div class="drawer-item" onclick="resetSystem()" style="margin-top: 10px;">
                 <div class="icon-box" style="background: rgba(248, 113, 113, 0.1); color: var(--danger);"><i class="fas fa-power-off"></i></div>
                 <div>
                     <div style="font-weight: 600; color: var(--danger);">Resetar Tudo</div>

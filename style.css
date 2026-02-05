@@ -556,14 +556,19 @@ select option {
         display: flex;
         position: fixed;
         bottom: 0; left: 0; width: 100%;
-        height: 70px;
-        background: rgba(15, 23, 42, 0.95);
+        height: 70px; /* Altura padrão */
+        background: rgba(15, 23, 42, 0.98); /* Fundo um pouco mais sólido */
         backdrop-filter: blur(10px);
         border-top: var(--border);
-        justify-content: space-around;
+        
+        /* MUDANÇA: Distribuição exata */
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr; /* A coluna do meio (FAB) é um pouco mais larga */
         align-items: center;
+        justify-items: center;
+        
         z-index: 999;
-        padding-bottom: env(safe-area-inset-bottom); /* Ajuste para iPhone X+ */
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .mobile-item {
@@ -828,4 +833,123 @@ html, body {
     color: var(--text-main);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.1rem;
+}
+
+/* --- ESTILO DOS CARTÕES --- */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.credit-card-widget {
+    border-radius: 16px;
+    padding: 25px;
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-pay-invoice {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.btn-pay-invoice:hover { background: #fff; color: #000; }
+
+/* Seletor de Método de Pagamento (Modal) */
+.method-selector {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.method-opt {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+
+.method-opt input { display: none; }
+
+.method-opt.active {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* Seletor de Cores */
+.color-selector { display: flex; gap: 10px; }
+.color-opt {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+/* Botões de Ação dentro do Cartão (Editar/Excluir) */
+.btn-card-action {
+    background: rgba(0,0,0,0.2);
+    border: none;
+    color: rgba(255,255,255,0.7);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.2s;
+}
+.btn-card-action:hover {
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Input de Cor Personalizado (Arco-íris) */
+.color-picker-wrapper {
+    position: relative;
+    width: 30px; 
+    height: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent; /* Borda padrão */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); /* Fundo arco-íris */
+}
+
+/* Esconde o input feio, mas deixa clicável por cima */
+.color-picker-wrapper input[type="color"] {
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    cursor: pointer;
+    opacity: 0; /* Invisível */
+}
+
+/* Ícone de paleta para indicar que é customizável */
+.color-picker-wrapper i {
+    color: #fff;
+    font-size: 0.8rem;
+    pointer-events: none; /* Deixa o clique passar para o input */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
