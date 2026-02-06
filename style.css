@@ -490,38 +490,42 @@ select option {
 /* Grid agora com 6 colunas (2 linhas de meses) */
 .month-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr); /* 6 meses por linha */
-    gap: 8px; /* Espacinho entre botões */
-    margin-top: 10px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 5px;
 }
 
+/* Botão do Mês */
 .month-check {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 8px 2px; /* Altura compacta */
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid transparent;
-    border-radius: 6px;
+    padding: 10px 0; /* Mais altura para facilitar o toque */
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     color: var(--text-muted);
-    font-size: 0.7rem; /* Fonte levemente menor para caber */
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.01s ease;
+    transition: all 0.2s ease;
     user-select: none;
 }
 
+/* Hover */
 .month-check:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Estado Selecionado */
+/* Selecionado */
 .month-check:has(input:checked) {
-    background: var(--primary); /* Fundo Dourado Cheio */
-    color: #0f172a; /* Texto Escuro (contraste) */
-    box-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+    background: var(--primary);
+    color: #0f172a; /* Texto escuro */
+    font-weight: 800;
     border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
 }
 
 .month-check input { display: none; }
@@ -834,8 +838,17 @@ select option {
     }
 
     .month-grid {
-        grid-template-columns: repeat(4, 1fr); /* Reduz para 4 colunas no mobile p/ caber */
+        /* Muda para 4 colunas no celular. Fica muito mais organizado (3 linhas de 4) */
+        grid-template-columns: repeat(4, 1fr) !important; 
+        gap: 10px;
     }
+    
+    /* Aumenta a área de toque no celular */
+    .month-check {
+        padding: 12px 0; 
+        font-size: 0.8rem;
+    }
+}
 
     /* Esconde colunas menos importantes das tabelas no mobile para caber */
     /* A regra abaixo pode ser redundante com a lógica de cards, mas mantemos para segurança */
@@ -953,11 +966,29 @@ select option {
         background: rgba(255,255,255,0.05); margin: 0;
     }
 
-    /* --- DESPESAS FIXAS (Compacto) --- */
-    #body-fixed td:nth-of-type(1) { margin-bottom: 4px; transform: scale(0.9); transform-origin: left; } /* Status */
-    #body-fixed td:nth-of-type(2) { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 2px; } /* Desc */
-    #body-fixed td:nth-of-type(3) { position: absolute; top: 12px; right: 0; font-size: 1rem; font-weight: bold; width: auto; } /* Valor */
-    #body-fixed td:nth-of-type(4) { position: absolute; bottom: 0; right: 0; border: none; padding: 0; gap: 8px; } /* Ações */
+    /* --- DESPESAS FIXAS (Compacto - Atualizado para 5 colunas) --- */
+    
+    /* 1. Status */
+    #body-fixed td:nth-of-type(1) { margin-bottom: 4px; transform: scale(0.9); transform-origin: left; } 
+    
+    /* 2. Descrição */
+    #body-fixed td:nth-of-type(2) { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 2px; } 
+    
+    /* 3. Categoria (NOVO - Vamos exibir como um chip pequeno) */
+    #body-fixed td:nth-of-type(3) { display: inline-block; margin-bottom: 5px; }
+    #body-fixed td:nth-of-type(3) .status-badge { padding: 2px 8px; font-size: 0.65rem; }
+
+    /* 4. Valor (Agora é o índice 4) */
+    #body-fixed td:nth-of-type(4) { 
+        position: absolute; top: 12px; right: 0; 
+        font-size: 1rem; font-weight: bold; width: auto; 
+    } 
+    
+    /* 5. Ações (Agora é o índice 5) */
+    #body-fixed td:nth-of-type(5) { 
+        position: absolute; bottom: 0; right: 0; 
+        border: none; padding: 0; gap: 8px; 
+    }
 
     /* --- ENTRADAS (Compacto) --- */
     #body-income td:nth-of-type(1) { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
@@ -965,7 +996,7 @@ select option {
     #body-income td:nth-of-type(3) { position: absolute; top: 50%; right: 0; transform: translateY(-50%); } /* Ações centralizadas na direita */
 
 
-}
+
 
 /* --- TRAVA GERAL DE SCROLL (GLOBAL) --- */
 html, body {

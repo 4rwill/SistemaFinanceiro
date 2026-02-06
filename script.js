@@ -449,6 +449,7 @@ function renderTableRows(month, type) {
                     </div>
                 </td>
                 <td>${item.desc}</td>
+                <td><span class="status-badge status-pending" style="background:rgba(255, 255, 255, 0.05); color:var(--text-muted)">${item.cat || 'Geral'}</span></td>
                 <td>${formatBRL(item.val)}</td>
                 <td>
                     <div style="display:flex; gap:10px;">
@@ -552,11 +553,11 @@ function openTransactionModal(type, id = null) {
     }
 
     document.getElementById('field-date').style.display = (type === 'variable') ? 'block' : 'none';
-    document.getElementById('field-cat').style.display = (type === 'variable') ? 'block' : 'none';
+    document.getElementById('field-cat').style.display = (type === 'variable' || type === 'fixed') ? 'block' : 'none';
     document.getElementById('field-method').style.display = (type === 'variable') ? 'block' : 'none'; 
     document.getElementById('field-paid').style.display = (type === 'fixed') ? 'block' : 'none';
 
-    if (type === 'variable') {
+    if (type === 'variable' || type === 'fixed') {
         const cardContainer = document.getElementById('card-options-container');
         if(cardContainer) {
             cardContainer.innerHTML = ''; 
@@ -606,8 +607,10 @@ function openTransactionModal(type, id = null) {
         document.getElementById('field-months').style.display = 'none';
     }
 
-    if (type === 'variable') {
-        renderCategoryChips(id ? db.months[m][type].find(x => x.id === id)?.cat : null);
+    if (type === 'variable' || type === 'fixed') {
+        // Tenta achar a categoria se estivermos editando um item existente
+        const itemAtual = id ? db.months[m][type].find(x => x.id === id) : null;
+        renderCategoryChips(itemAtual ? itemAtual.cat : null);
     }
 
     const titles = { fixed: 'Nova Despesa Fixa', variable: 'Novo Gasto Variável', income: 'Nova Entrada' };
@@ -681,15 +684,18 @@ function saveTransactionForm() {
             }
 
             if (isChecked) {
+                // Pega a categoria do formulário ou define como 'Contas' se estiver vazio
+                const catValue = document.getElementById('trans-cat').value || 'Contas';
+                
                 if (idx > -1) {
                     list[idx].desc = desc;
                     list[idx].val = val;
+                    list[idx].cat = catValue; // <--- SALVA A CATEGORIA
                     if (m === currentMonth) list[idx].paid = document.getElementById('trans-paid').checked;
                 } else {
-                    list.push({ id: Date.now() + Math.random(), desc: desc, val: val, paid: false });
+                    // CRIA NOVO COM CATEGORIA
+                    list.push({ id: Date.now() + Math.random(), desc: desc, val: val, cat: catValue, paid: false });
                 }
-            } else {
-                if (idx > -1) list.splice(idx, 1);
             }
         });
     } 
