@@ -175,69 +175,112 @@
                 </div>
             </div>
 
-            <div class="grid-split">
-                <div>
-                    <div class="panel">
-                        <div class="panel-header">
-                            <span class="panel-title">Despesas Fixas</span>
-                            <button class="btn-icon" onclick="openTransactionModal('fixed')"><i class="fas fa-plus"></i></button>
+           
+                <div class="section-panel">
+                    <div class="section-header" id="header-fixed">
+                        <div class="section-info">
+                            <span class="section-title">Despesas Fixas</span>
+                            <span class="section-total" id="total-fixed">R$ 0,00</span>
                         </div>
-                        <table id="table-fixed">
-                            <thead>
-                                <tr>
-                                    <th width="10%">Status</th>
-                                    <th>Descrição</th>
-                                    <th width="20%">Valor</th>
-                                    <th width="10%">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-fixed"></tbody>
-                        </table>
+                        <div class="section-actions">
+                            <button class="btn-small-action" onclick="toggleSectionChart('fixed', this)" title="Ver Gráfico">
+                                <i class="fas fa-chart-pie"></i>
+                            </button>
+                            <button class="btn-small-action" onclick="openTransactionModal('fixed')" title="Adicionar">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="btn-small-action" onclick="toggleSectionBody('fixed', this)">
+                                <i class="fas fa-chevron-down" id="icon-fixed"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="panel">
-                        <div class="panel-header">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span class="panel-title">Gastos Variáveis</span>
-                                <select id="filter-category" class="input-clean" style="width: 150px; font-size: 0.80rem; border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;" onchange="applyFilter(this.value)">
-                                    <option value="all">Todas Categorias</option>
-                                </select>
-                            </div>
-                            <button class="btn-icon" onclick="openTransactionModal('variable')"><i class="fas fa-plus"></i></button>
+                    <div class="section-body" id="body-fixed">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Descrição</th>
+                                        <th>Cat</th> <th>Valor</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-fixed"></tbody>
+                            </table>
                         </div>
-                        <table id="table-variable">
-                            <thead>
-                                <tr>
-                                    <th width="20%" style="cursor: pointer;" onclick="applySort('date')">Data <i class="fas fa-sort sort-icon"></i></th>
-                                    <th style="cursor: pointer;" onclick="applySort('desc')">Descrição <i class="fas fa-sort sort-icon"></i></th>
-                                    <th style="cursor: pointer;" onclick="applySort('cat')">Categoria <i class="fas fa-sort sort-icon"></i></th>
-                                    <th width="20%" style="cursor: pointer;" onclick="applySort('val')">Valor <i class="fas fa-sort sort-icon"></i></th>
-                                    <th width="10%">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-variable"></tbody>
-                        </table>
                     </div>
                 </div>
 
-                <div>
-                    <div class="panel">
-                        <div class="panel-header">
-                            <span class="panel-title" style="color: var(--success);">Entradas</span>
-                            <button class="btn-icon" onclick="openTransactionModal('income')"><i class="fas fa-plus"></i></button>
+                <div class="section-panel">
+                    <div class="section-header" id="header-variable">
+                        <div class="section-info">
+                            <span class="section-title">Gastos Variáveis</span>
+                            <span class="section-total" id="total-variable">R$ 0,00</span>
                         </div>
-                        <table id="table-income">
-                            <thead>
-                                <tr>
-                                    <th>Fonte</th>
-                                    <th>Valor</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
+                        <div class="section-actions">
+                            <button class="btn-small-action" onclick="toggleSectionChart('variable', this)">
+                                <i class="fas fa-chart-pie"></i>
+                            </button>
+                            <button class="btn-small-action" onclick="openTransactionModal('variable')">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="btn-small-action" onclick="toggleSectionBody('variable', this)">
+                                <i class="fas fa-chevron-down" id="icon-variable"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-body open" id="body-variable"> <div class="section-chart-area" id="chart-area-variable">
+                            <canvas id="chart-variable"></canvas>
+                        </div>
+                        <div style="padding: 10px 15px; border-bottom: var(--border);">
+                            <select id="filter-category" onchange="applyFilter(this.value)" class="input-clean" style="font-size: 0.8rem;">
+                                <option value="all">Todas as Categorias</option>
+                            </select>
+                        </div>
+                        <div class="table-container">
+                            <table id="table-variable">
+                                <thead>
+                                    <tr>
+                                        <th onclick="applySort('date')">Data <i class="fas fa-sort sort-icon"></i></th>
+                                        <th onclick="applySort('desc')">Desc <i class="fas fa-sort sort-icon"></i></th>
+                                        <th onclick="applySort('cat')">Cat <i class="fas fa-sort sort-icon"></i></th>
+                                        <th onclick="applySort('val')">Valor <i class="fas fa-sort sort-icon"></i></th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-variable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="section-panel">
+                <div class="section-header" id="header-income">
+                    <div class="section-info">
+                        <span class="section-title">Entradas</span>
+                        <span class="section-total" id="total-income" style="color: var(--success);">R$ 0,00</span>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn-small-action" onclick="openTransactionModal('income')">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="btn-small-action" onclick="toggleSectionBody('income', this)">
+                            <i class="fas fa-chevron-down" id="icon-income"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section-body" id="body-income">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Descrição</th><th>Valor</th><th>Ações</th></tr></thead>
                             <tbody id="tbody-income"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
             </div>
         </section>
 
@@ -247,8 +290,8 @@
                     <h2 style="margin-bottom: 5px;">Meus Cartões</h2>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Gerencie limites e faturas</p>
                 </div>
-                <button class="btn-icon" style="width: auto; padding: 0 15px; background: var(--primary); color: #0f172a; font-weight: bold;" onclick="openCardModal()">
-                    <i class="fas fa-plus"></i> Novo Cartão
+                <button class="btn-main-add" onclick="openCardModal()">
+                    <i class="fas fa-credit-card"></i> Adicionar Cartão
                 </button>
             </div>
 
@@ -298,9 +341,9 @@
                     <h2 style="margin-bottom: 5px;">Meus Objetivos</h2>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Acompanhe o progresso dos seus sonhos</p>
                 </div>
-                <button class="btn-icon" style="width: auto; padding: 0 15px; background: var(--primary); color: #0f172a; font-weight: bold;" onclick="openGoalModal()">
-                    <i class="fas fa-plus"></i> Nova Meta
-                </button>
+                <button class="btn-main-add" onclick="openGoalModal()">
+                <i class="fas fa-plus-circle"></i> Criar Nova Meta
+            </button>
             </div>
             
             <div id="goals-container" class="goals-grid"></div>
@@ -351,7 +394,9 @@
             <h3 id="trans-modal-title" style="margin-bottom: 20px;">Nova Transação</h3>
             
             <input type="hidden" id="trans-id">
-            <input type="hidden" id="trans-type"> <div class="form-group">
+            <input type="hidden" id="trans-type"> 
+
+            <div class="form-group">
                 <label>Descrição</label>
                 <input type="text" id="trans-desc" class="input-clean" placeholder="Ex: Conta de Luz" style="border-bottom: 1px solid #334155; padding: 10px 0;">
             </div>
@@ -371,7 +416,7 @@
                 <div class="method-selector">
                     <label class="method-opt active">
                         <input type="radio" name="trans-method" value="debit" checked onchange="toggleMethodStyle(this)">
-                        <i class="fas fa-wallet"></i> Débito / Dinheiro
+                        <i class="fas fa-wallet"></i> Débito
                     </label>
                     <div id="card-options-container" style="display:contents;"></div>
                 </div>
@@ -380,38 +425,23 @@
             <div class="form-group" id="field-cat" style="display:none;">
                 <label>Categoria</label>
                 <input type="text" id="trans-cat" class="input-clean" placeholder="Selecione ou digite..." style="border-bottom: 1px solid #334155; padding: 10px 0;">
-                
-                <div id="category-chips-container" class="category-chips">
-                    </div>
+                <div id="category-chips-container" class="category-chips"></div>
             </div>
 
-            <div class="form-group" id="field-paid" style="display:none;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="trans-paid" style="width:16px; height:16px;">
-                    Já foi pago?
-                </label>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="saveTransactionForm()" class="btn-save">Salvar</button>
-                <button onclick="closeTransactionModal()" class="btn-cancel">Cancelar</button>
-            </div>
-        </div>
-
-        <div class="form-group" id="field-paid" style="display:none;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="trans-paid" style="width:16px; height:16px;">
-                    Já foi pago?
+            <div class="form-group" id="field-paid" style="display:none; margin-bottom: 15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <input type="checkbox" id="trans-paid" style="width:18px; height:18px; accent-color: var(--primary);">
+                    <span>Esta conta já foi paga este mês?</span>
                 </label>
             </div>
 
             <div class="form-group" id="field-months" style="display:none;">
+                <label style="margin-bottom: 10px;">Repetir em quais meses?</label>
                 
-                <div class="recurrence-box">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size: 0.85rem; color: #fff;">Repetir em:</span>
-                        <button type="button" onclick="toggleAllMonths()" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--primary); cursor: pointer; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px;">
-                            Marcar Todos
+                <div class="recurrence-box" style="background: transparent; border: none; padding: 0;">
+                    <div style="margin-bottom: 10px; text-align: right;">
+                        <button type="button" onclick="toggleAllMonths()" style="background: transparent; color: var(--primary); border: 1px solid var(--primary); cursor: pointer; font-size: 0.75rem; padding: 4px 12px; border-radius: 20px;">
+                            Marcar/Desmarcar Todos
                         </button>
                     </div>
                     
@@ -431,6 +461,12 @@
                     </div>
                 </div>
             </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                <button onclick="saveTransactionForm()" class="btn-save">Salvar</button>
+                <button onclick="closeTransactionModal()" class="btn-cancel">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <div id="mobile-menu-overlay" class="modal-overlay" style="align-items: flex-end;" onclick="closeMobileMenu()">
