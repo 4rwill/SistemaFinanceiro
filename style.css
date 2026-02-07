@@ -86,9 +86,10 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    /* MUDANÇA AQUI: */
-    overflow-y: auto; /* Antes estava 'hidden'. Agora permite rolar o conteúdo */
-    overflow-x: hidden; /* Evita rolagem lateral */
+    
+    /* SCROLL CORRIGIDO PARA PC */
+    overflow-y: auto; 
+    overflow-x: hidden;
     
     position: relative;
     height: 100vh;
@@ -145,12 +146,10 @@ select {
 /* Views */
 /* Container Centralizado para PC */
 .view-section {
-    display: none; /* Padrão do sistema de abas */
+    display: none; 
     width: 100%;
-    
-    /* O SEGREDO ESTÁ AQUI: */
-    max-width: 900px; /* Trava a largura máxima. Pode testar 800px ou 1000px */
-    margin: 0 auto;   /* Centraliza o bloco na tela */
+    max-width: 900px; 
+    margin: 0 auto;
 }
 
 .view-section.active {
@@ -160,30 +159,24 @@ select {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
 /* KPI Cards */
-/* --- CORREÇÃO DO GRID DO PANORAMA --- */
 .kpi-grid {
     display: grid;
-    /* O SEGREDO: Em vez de 'repeat(4, 1fr)', usamos auto-fit com tamanho mínimo */
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     margin-bottom: 24px;
 }
 
-/* --- CORREÇÃO FINAL DOS CARDS DO DASHBOARD --- */
-
+/* CARDS DO DASHBOARD */
 #view-dashboard .card {
-    /* Garante que o card tenha um tamanho mínimo decente */
     min-width: 0; 
-    padding: 20px; /* Um pouco menos de padding para sobrar espaço pro texto */
+    padding: 20px; 
 }
 
 #view-dashboard .kpi-val {
-    white-space: nowrap; /* O PULO DO GATO: Proíbe quebrar a linha */
-    font-size: 1.4rem;   /* Reduzi de 1.6rem para 1.4rem para caber melhor */
+    white-space: nowrap; 
+    font-size: 1.4rem;  
     font-weight: 700;
     line-height: 1.2;
-    
-    /* Se o valor for absurdamente grande (trilionário), coloca "..." */
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -221,16 +214,14 @@ select {
 .kpi-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .kpi-val { font-size: 1.8rem; font-weight: 700; font-family: var(--font-mono); color: #fff; }
 
-/* Tables (Atualizado para Scroll e Sticky Header) */
+/* Tables */
 .panel {
     background: var(--bg-card);
     border: var(--border);
     border-radius: var(--radius);
     margin-bottom: 24px;
-    
-    /* MODIFICAÇÃO DE SCROLL */
-    max-height: 400px; /* Altura máxima do painel */
-    overflow-y: auto;  /* Cria barra de rolagem */
+    max-height: 400px; 
+    overflow-y: auto;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -242,28 +233,14 @@ select {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
-    /* MODIFICAÇÃO DE SCROLL */
     position: sticky;
     top: 0;
     z-index: 20;
-    background: #1e293b; /* Fundo sólido para cobrir a lista */
+    background: #1e293b; 
     flex-shrink: 0;
 }
 
 .panel-title { font-weight: 600; font-size: 1rem; color: var(--text-main); }
-
-.btn-icon {
-    background: rgba(255,255,255,0.05);
-    border: none;
-    color: var(--primary);
-    width: 32px; height: 32px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.2s;
-    display: flex; align-items: center; justify-content: center;
-}
-.btn-icon:hover { background: var(--primary); color: #000; transform: scale(1.05); }
 
 table { width: 100%; border-collapse: collapse; }
 
@@ -275,8 +252,6 @@ th {
     text-transform: uppercase; 
     border-bottom: var(--border); 
     font-weight: 600;
-    
-    /* STICKY HEADER DA TABELA */
     position: sticky;
     top: 0;
     z-index: 10;
@@ -288,13 +263,11 @@ td { padding: 12px 24px; border-bottom: var(--border); color: var(--text-main); 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--bg-hover); }
 
-/* Custom Scrollbar para os Painéis */
 .panel::-webkit-scrollbar { width: 6px; }
 .panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
 .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 .panel::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-/* Form Inputs in Table */
 .input-clean {
     background: transparent;
     border: none;
@@ -317,10 +290,8 @@ tr:hover td { background: var(--bg-hover); }
 .status-paid { background: rgba(52, 211, 153, 0.15); color: var(--success); }
 .status-pending { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
 
-/* Grid Helpers */
 .grid-split { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
 
-/* Toast Notification */
 #toast {
     position: fixed; bottom: 30px; right: 30px;
     background: var(--bg-card); border: var(--border); border-left: 4px solid var(--primary);
@@ -339,18 +310,8 @@ tr:hover td { background: var(--bg-hover); }
     transition: 0.2s;
 }
 
-th:hover .sort-icon {
-    opacity: 1;
-    color: var(--primary);
-}
-
-/* --- CORREÇÃO DO DROPDOWN --- */
-/* Força as opções a terem fundo escuro e texto claro */
-select option {
-    background-color: var(--bg-body); /* Usa a cor de fundo do site (#0f172a) */
-    color: var(--text-main);          /* Usa a cor de texto padrão (#f1f5f9) */
-    padding: 10px;
-}
+th:hover .sort-icon { opacity: 1; color: var(--primary); }
+select option { background-color: var(--bg-body); color: var(--text-main); padding: 10px; }
 
 /* --- GOALS GRID & CARDS --- */
 .goals-grid {
@@ -426,20 +387,18 @@ select option {
 }
 .modal-overlay.open { display: flex; animation: fadeIn 0.2s; }
 
-/* Aumentamos a largura máxima do modal para caber tudo confortavelmente */
 .modal-box {
     background: #1e293b;
     border: 1px solid rgba(255,255,255,0.1);
     padding: 30px;
     border-radius: 16px;
-    width: 90%; /* Responsivo mobile */
-    max-width: 550px; /* Mais largo que antes (era 400px) */
+    width: 90%; 
+    max-width: 550px; 
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 
-/* Caixa visual para agrupar a seleção de meses */
 .recurrence-box {
-    background: rgba(0, 0, 0, 0.2); /* Fundo mais escuro para separar */
+    background: rgba(0, 0, 0, 0.2); 
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 15px;
@@ -461,14 +420,13 @@ select option {
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Botões do Modal */
 .btn-save {
     flex: 1;
     padding: 12px;
     border-radius: 8px;
     border: none;
-    background: var(--primary); /* Dourado */
-    color: #0f172a; /* Escuro */
+    background: var(--primary); 
+    color: #0f172a; 
     font-weight: bold;
     cursor: pointer;
     transition: filter 0.2s;
@@ -487,7 +445,7 @@ select option {
 }
 .btn-cancel:hover { background: rgba(255,255,255,0.05); }
 
-/* Grid agora com 6 colunas (2 linhas de meses) */
+/* Grid de Meses */
 .month-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -495,13 +453,12 @@ select option {
     margin-top: 5px;
 }
 
-/* Botão do Mês */
 .month-check {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 10px 0; /* Mais altura para facilitar o toque */
+    padding: 10px 0; 
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
@@ -513,16 +470,14 @@ select option {
     user-select: none;
 }
 
-/* Hover */
 .month-check:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Selecionado */
 .month-check:has(input:checked) {
     background: var(--primary);
-    color: #0f172a; /* Texto escuro */
+    color: #0f172a; 
     font-weight: 800;
     border-color: var(--primary);
     box-shadow: 0 0 10px var(--primary-glow);
@@ -530,7 +485,7 @@ select option {
 
 .month-check input { display: none; }
 
-/* --- CATEGORY CHIPS (ETIQUETAS) --- */
+/* CATEGORY CHIPS */
 .category-chips {
     display: flex;
     flex-wrap: wrap;
@@ -552,503 +507,11 @@ select option {
     gap: 6px;
 }
 
-.chip:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-/* Quando selecionado (borda dourada) */
-.chip.active {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: var(--primary);
-    color: var(--primary);
-    font-weight: 600;
-}
-
+.chip:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.chip.active { background: rgba(251, 191, 36, 0.15); border-color: var(--primary); color: var(--primary); font-weight: 600; }
 .chip i { font-size: 0.7rem; }
 
-/* --- MOBILE NAVIGATION & RESPONSIVENESS --- */
-.mobile-nav {
-    display: none; /* Escondido no PC */
-}
-
-/* Regras para telas menores que 768px (Celulares/Tablets pequenos) */
-@media (max-width: 768px) {
-
-    /* 0. DESTRAVAR ROLAGEM NO MOBILE */
-    body {
-        height: auto !important;     /* Deixa a altura livre para crescer */
-        overflow-y: auto !important; /* Libera a barra de rolagem vertical */
-        overflow-x: hidden;          /* Evita rolagem lateral */
-        display: block;              /* Remove o display flex que trava o layout */
-    }
-
-    .main {
-        height: auto !important;
-        overflow: visible !important;
-        padding-bottom: 100px; /* Espaço extra no final para o menu não cobrir nada */
-    }
-    
-    /* 1. Layout Geral */
-    body {
-        flex-direction: column;
-    }
-
-    /* Esconde Sidebar Lateral */
-    .sidebar {
-        display: none; 
-    }
-
-    /* Ajusta Main Area */
-    .main {
-        width: 100vw;
-        padding: 0;
-        padding-bottom: 90px; /* Espaço maior para o menu não cobrir o último card */
-        overflow-x: hidden;
-    }
-
-    header {
-        padding: 0 20px;
-        height: 70px;
-    }
-
-    h2 { font-size: 1.2rem; }
-
-    /* 2. Menu Inferior (App Style) */
-    .mobile-nav {
-        display: flex;
-        position: fixed;
-        bottom: 0; left: 0; width: 100%;
-        height: 70px; /* Altura padrão */
-        background: rgba(15, 23, 42, 0.98); /* Fundo um pouco mais sólido */
-        backdrop-filter: blur(10px);
-        border-top: var(--border);
-        
-        /* MUDANÇA: Distribuição exata */
-        display: grid;
-        grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr; /* A coluna do meio (FAB) é um pouco mais larga */
-        align-items: center;
-        justify-items: center;
-        
-        z-index: 999;
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    .mobile-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        font-size: 0.7rem;
-        gap: 4px;
-        width: 60px;
-        cursor: pointer;
-    }
-
-    .mobile-item i { font-size: 1.2rem; margin-bottom: 2px; }
-    .mobile-item.active { color: var(--primary); }
-
-    /* Botão Flutuante Central */
-    .mobile-fab {
-        background: var(--primary);
-        color: #0f172a;
-        width: 50px; height: 50px;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.5rem;
-        box-shadow: 0 0 15px var(--primary-glow);
-        transform: translateY(-20px); /* Sobe um pouco */
-        border: 4px solid var(--bg-body); /* Borda para separar do fundo */
-    }
-
-    /* 3. Grid Adjustments (Empilhar tudo) */
-    .kpi-grid {
-        grid-template-columns: 1fr; /* 1 coluna */
-        gap: 15px;
-    }
-    
-    .grid-split {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    /* Ajustes Gerais de Painel Mobile */
-    .view-section {
-        padding: 15px; /* Menos padding nas laterais */
-    }
-
-    /* 2. TRANSFORMAÇÃO TABELA -> CARDS */
-    /* Remove comportamento de tabela */
-    .panel table, .panel thead, .panel tbody, .panel th, .panel td, .panel tr { 
-        display: block; 
-    }
-
-    /* Esconde o cabeçalho da tabela (Data, Descrição, Valor...) pois o card é intuitivo */
-    .panel thead tr { 
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-    }
-
-    .panel {
-        /* No celular, limitamos um pouco menos para caber mais cards */
-        max-height: 60vh; /* Ocupa no máximo 60% da altura da tela */
-        overflow-y: auto; /* Permite rolar os cards dentro do painel */
-        background: transparent; /* Remove fundo do painel para os cards flutuarem */
-        border: none;
-        padding: 0 5px;
-        overflow: visible; /* Sobrescreve para permitir sombras, o scroll é interno ou na página */
-        overflow-y: auto;
-    }
-    
-    .panel-header {
-        position: sticky;
-        top: 0;
-        z-index: 30;
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(10px);
-        margin-bottom: 10px;
-        border-radius: 12px;
-    }
-
-    /* ESTILO DO CARTÃO (Cada linha tr vira um card) */
-    .panel tbody tr { 
-        background: rgba(30, 41, 59, 0.9); /* Fundo do card */
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        margin-bottom: 15px; /* Espaço entre cards */
-        padding: 15px;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-
-    .panel tbody tr:active {
-        transform: scale(0.99); /* Efeito de clique */
-    }
-
-    /* 3. ORGANIZAÇÃO INTERNA DO CARD */
-    .panel td { 
-        border: none;
-        padding: 2px 0;
-        position: relative;
-        text-align: left;
-    }
-
-    /* --- REGRAS ESPECÍFICAS POR TIPO DE TABELA --- */
-
-    /* A) GASTOS VARIÁVEIS (Data / Desc / Cat / Valor / Ações) */
-    #table-variable td:nth-of-type(1) { /* Data */
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-bottom: 4px;
-    }
-    
-    #table-variable td:nth-of-type(2) { /* Descrição */
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #fff;
-        margin-bottom: 5px;
-        padding-right: 80px; /* Espaço para não bater no valor */
-    }
-
-    #table-variable td:nth-of-type(3) { /* Categoria */
-        display: inline-block; /* Garante que aparece */
-    }
-    
-    #table-variable td:nth-of-type(4) { /* Valor */
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 1rem;
-        font-weight: bold;
-        color: #fff;
-    }
-
-    #table-variable td:nth-of-type(5) { /* Ações (Botões) */
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        display: flex;
-        justify-content: flex-end;
-        gap: 15px;
-    }
-
-    /* B) DESPESAS FIXAS (Status / Desc / Valor / Ações) */
-    #table-fixed td:nth-of-type(1) { /* Status Badge */
-        margin-bottom: 8px;
-    }
-
-    #table-fixed td:nth-of-type(2) { /* Descrição */
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    #table-fixed td:nth-of-type(3) { /* Valor */
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 1rem;
-        font-weight: bold;
-    }
-
-    #table-fixed td:nth-of-type(4) { /* Ações */
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        display: flex;
-        justify-content: flex-end;
-        gap: 15px;
-    }
-
-    /* C) ENTRADAS (Desc / Valor / Ações) */
-    #table-income td:nth-of-type(1) { /* Descrição */
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #fff;
-        margin-bottom: 5px;
-    }
-
-    #table-income td:nth-of-type(2) { /* Valor */
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: var(--success) !important;
-    }
-
-    #table-income td:nth-of-type(3) { /* Ações */
-        position: absolute;
-        bottom: 15px;
-        right: 15px;
-    }
-
-    /* Botões de Ação Maiores no Mobile */
-    .btn-icon {
-        width: 35px; height: 35px; /* Maior área de toque */
-        font-size: 0.9rem;
-        background: rgba(255,255,255,0.1);
-    }
-
-    /* 4. Ajustes de Modal para Mobile */
-    .modal-box {
-        width: 95%;
-        padding: 20px;
-        max-height: 90vh; /* Não estourar a altura */
-        overflow-y: auto; /* Scroll dentro do modal se precisar */
-    }
-
-    .month-grid {
-        /* Muda para 4 colunas no celular. Fica muito mais organizado (3 linhas de 4) */
-        grid-template-columns: repeat(4, 1fr) !important; 
-        gap: 10px;
-    }
-    
-    /* Aumenta a área de toque no celular */
-    .month-check {
-        padding: 12px 0; 
-        font-size: 0.8rem;
-    }
-}
-
-    /* Esconde colunas menos importantes das tabelas no mobile para caber */
-    /* A regra abaixo pode ser redundante com a lógica de cards, mas mantemos para segurança */
-    #table-variable th:nth-child(3), #table-variable td:nth-child(3) { 
-        /* display: none; -> Removido pois no modo CARD queremos ver a categoria */
-    }
-
-    /* 1. Arrumar o Cabeçalho da Página (Título vs Seletor de Mês) */
-    
-    /* CORREÇÃO: Usar 'header' (a tag) em vez de '.page-header' */
-    /* 1. Arrumar o Cabeçalho */
-    header {
-        height: auto;
-        min-height: auto;
-        padding: 15px;
-        flex-direction: row; /* Volta a ficar lado a lado para economizar altura */
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-    header h2 {
-        font-size: 1rem;
-        white-space: nowrap; /* Não deixa o título quebrar linha */
-    }
-
-    /* O container do seletor */
-    #month-control {
-        width: auto; /* Ocupa só o necessário */
-        margin: 0;
-    }
-
-    /* O Botão Amarelo em si */
-    #month-control .select-wrapper {
-        width: auto !important;
-        min-width: 0 !important; /* Remove qualquer largura mínima */
-        padding: 0 8px !important; /* Padding bem justo */
-        height: 35px; /* Altura fixa menor */
-        display: flex;
-        align-items: center;
-    }
-
-    #month-control select {
-        padding: 7px 15px 7px 0px !important; /* Espaço só para a setinha */
-        font-size: 0.8rem !important;
-        height: 100%;
-    }
-    
-    /* Ajusta a setinha do select */
-    .select-wrapper::after {
-        right: 5px;
-        font-size: 0.6rem;
-    }
-    /* 2. TRANSFORMAÇÃO TABELA -> CARDS (Versão Compacta) */
-    
-    .section-panel table, .section-panel thead, .section-panel tbody, .section-panel th, .section-panel td, .section-panel tr { 
-        display: block; 
-    }
-
-    .section-panel thead tr { position: absolute; top: -9999px; left: -9999px; }
-
-    /* Estilo do Cartão (A linha TR) */
-    .section-panel tbody tr { 
-        background: rgba(30, 41, 59, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        margin-bottom: 10px; /* Menos espaço entre cards */
-        padding: 10px 15px;  /* Card mais fino */
-        position: relative; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        min-height: 60px; /* Garante altura mínima */
-    }
-
-    .section-panel td { 
-        border: none; padding: 0; margin: 0; position: relative; width: 100%; 
-    }
-
-    /* --- GASTOS VARIÁVEIS (Compacto) --- */
-    
-    /* Data (Pequena em cima) */
-    #table-variable td:nth-of-type(1) { 
-        font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px; 
-    }
-    
-    /* Descrição (Grande) */
-    #table-variable td:nth-of-type(2) { 
-        font-size: 1rem; font-weight: 600; color: #fff;
-        padding-right: 90px; /* Espaço para o valor não encavalar */
-        line-height: 1.2;
-        margin-bottom: 4px;
-    }
-
-    /* Categoria (Chip pequeno) */
-    #table-variable td:nth-of-type(3) .status-badge {
-        padding: 2px 8px; font-size: 0.65rem; /* Chip menor */
-    }
-    
-    /* Valor (Canto Superior Direito) */
-    #table-variable td:nth-of-type(4) { 
-        position: absolute; top: 10px; right: 0;
-        font-size: 1rem; font-weight: bold; color: #fff;
-        text-align: right; width: auto;
-    }
-
-    /* Ações (Canto Inferior Direito) */
-    #table-variable td:nth-of-type(5) { 
-        position: absolute; bottom: 0; right: 0;
-        margin: 0; padding: 0; border: none;
-        justify-content: flex-end; gap: 8px;
-    }
-    
-    /* Ajuste nos botões de ação para serem pequenos */
-    #table-variable .btn-icon, #body-fixed .btn-icon, #body-income .btn-icon {
-        width: 28px; height: 28px; font-size: 0.8rem;
-        background: rgba(255,255,255,0.05); margin: 0;
-    }
-
-    /* --- DESPESAS FIXAS (Compacto - Atualizado para 5 colunas) --- */
-    
-    /* 1. Status */
-    #body-fixed td:nth-of-type(1) { margin-bottom: 4px; transform: scale(0.9); transform-origin: left; } 
-    
-    /* 2. Descrição */
-    #body-fixed td:nth-of-type(2) { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 2px; } 
-    
-    /* 3. Categoria (NOVO - Vamos exibir como um chip pequeno) */
-    #body-fixed td:nth-of-type(3) { display: inline-block; margin-bottom: 5px; }
-    #body-fixed td:nth-of-type(3) .status-badge { padding: 2px 8px; font-size: 0.65rem; }
-
-    /* 4. Valor (Agora é o índice 4) */
-    #body-fixed td:nth-of-type(4) { 
-        position: absolute; top: 12px; right: 0; 
-        font-size: 1rem; font-weight: bold; width: auto; 
-    } 
-    
-    /* 5. Ações (Agora é o índice 5) */
-    #body-fixed td:nth-of-type(5) { 
-        position: absolute; bottom: 0; right: 0; 
-        border: none; padding: 0; gap: 8px; 
-    }
-
-    /* --- ENTRADAS (Compacto) --- */
-    #body-income td:nth-of-type(1) { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
-    #body-income td:nth-of-type(2) { font-size: 1rem; font-weight: bold; }
-    #body-income td:nth-of-type(3) { position: absolute; top: 50%; right: 0; transform: translateY(-50%); } /* Ações centralizadas na direita */
-
-
-
-
-/* --- TRAVA GERAL DE SCROLL (GLOBAL) --- */
-html, body {
-    overflow-x: hidden; /* Proíbe o usuário de arrastar para o lado */
-    width: 100%;
-    position: relative;
-}
-
-/* --- MENU MOBILE (DRAWER) --- */
-.mobile-drawer {
-    width: 100%;
-    background: #1e293b;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    padding: 20px 24px 40px 24px; /* Mais padding embaixo por causa do iPhone */
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    
-    /* Animação de entrada */
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Quando o modal abre, a gaveta sobe */
-.modal-overlay.open .mobile-drawer {
-    transform: translateY(0);
-}
-
-.drawer-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px 0;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.drawer-item:active {
-    opacity: 0.6;
-    transform: scale(0.98);
-}
-
-.drawer-item .icon-box {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text-main);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-}
-
-/* --- ESTILO DOS CARTÕES --- */
+/* --- CARTÕES DE CRÉDITO --- */
 .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1075,13 +538,7 @@ html, body {
 }
 .btn-pay-invoice:hover { background: #fff; color: #000; }
 
-/* Seletor de Método de Pagamento (Modal) */
-.method-selector {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 5px;
-}
+.method-selector { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
 
 .method-opt {
     background: rgba(255,255,255,0.05);
@@ -1098,14 +555,8 @@ html, body {
 }
 
 .method-opt input { display: none; }
+.method-opt.active { background: rgba(251, 191, 36, 0.1); border-color: var(--primary); color: var(--primary); }
 
-.method-opt.active {
-    background: rgba(251, 191, 36, 0.1);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* Seletor de Cores */
 .color-selector { display: flex; gap: 10px; }
 .color-opt {
     width: 30px; height: 30px;
@@ -1114,7 +565,6 @@ html, body {
     border: 2px solid transparent;
 }
 
-/* Botões de Ação dentro do Cartão (Editar/Excluir) */
 .btn-card-action {
     background: rgba(0,0,0,0.2);
     border: none;
@@ -1126,54 +576,33 @@ html, body {
     display: flex; align-items: center; justify-content: center;
     transition: 0.2s;
 }
-.btn-card-action:hover {
-    background: rgba(0,0,0,0.5);
-    color: #fff;
-    transform: scale(1.1);
-}
+.btn-card-action:hover { background: rgba(0,0,0,0.5); color: #fff; transform: scale(1.1); }
 
-/* Input de Cor Personalizado (Arco-íris) */
 .color-picker-wrapper {
     position: relative;
-    width: 30px; 
-    height: 30px;
+    width: 30px; height: 30px;
     border-radius: 50%;
     overflow: hidden;
     cursor: pointer;
-    border: 2px solid transparent; /* Borda padrão */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); /* Fundo arco-íris */
+    border: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center;
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
 }
-
-/* Esconde o input feio, mas deixa clicável por cima */
 .color-picker-wrapper input[type="color"] {
-    position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    padding: 0;
-    margin: 0;
-    border: none;
-    cursor: pointer;
-    opacity: 0; /* Invisível */
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    padding: 0; margin: 0; border: none; cursor: pointer; opacity: 0;
 }
-
-/* Ícone de paleta para indicar que é customizável */
 .color-picker-wrapper i {
-    color: #fff;
-    font-size: 0.8rem;
-    pointer-events: none; /* Deixa o clique passar para o input */
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    color: #fff; font-size: 0.8rem; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
-/* --- NOVAS SEÇÕES EXPANSÍVEIS --- */
+/* --- SEÇÕES EXPANSÍVEIS --- */
 .section-panel {
     background: var(--bg-card);
     border-radius: var(--radius);
     border: var(--border);
     margin-bottom: 20px;
-    overflow: hidden; /* Para a animação funcionar */
+    overflow: hidden;
     transition: all 0.3s ease;
 }
 
@@ -1184,38 +613,16 @@ html, body {
     align-items: center;
     background: rgba(255,255,255,0.02);
     border-bottom: 1px solid transparent;
-    cursor: pointer; /* Clicar no header tbm pode abrir/fechar se quiser */
+    cursor: pointer;
 }
 
-.section-header.expanded {
-    border-bottom: var(--border);
-    background: rgba(255,255,255,0.05);
-}
+.section-header.expanded { border-bottom: var(--border); background: rgba(255,255,255,0.05); }
 
-.section-info {
-    display: flex;
-    flex-direction: column;
-}
+.section-info { display: flex; flex-direction: column; }
+.section-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.section-total { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 2px; }
 
-.section-title {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.section-total {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-top: 2px;
-}
-
-.section-actions {
-    display: flex;
-    gap: 8px;
-}
+.section-actions { display: flex; gap: 8px; }
 
 .btn-small-action {
     width: 32px; height: 32px;
@@ -1227,123 +634,315 @@ html, body {
     cursor: pointer;
     transition: 0.2s;
 }
-.btn-small-action:hover {
-    background: var(--primary);
-    color: #000;
-    border-color: var(--primary);
-}
-.btn-small-action.active {
-    background: var(--primary);
-    color: #000;
-}
+.btn-small-action:hover { background: var(--primary); color: #000; border-color: var(--primary); }
+.btn-small-action.active { background: var(--primary); color: #000; }
 
-/* Área do conteúdo (Tabela + Gráfico) */
 .section-body {
-    max-height: 0; /* Começa fechado ou controlado via JS */
+    max-height: 0; 
     opacity: 0;
     overflow: hidden;
     transition: max-height 0.4s ease, opacity 0.3s ease;
 }
 
-.section-body.open {
-    max-height: 2000px; /* Valor alto para caber o conteúdo */
-    opacity: 1;
-}
+.section-body.open { max-height: 2000px; opacity: 1; }
 
-/* Container do Gráfico (Oculto por padrão) */
 .section-chart-area {
     display: none;
     padding: 20px;
     border-bottom: var(--border);
-    height: 200px; /* Altura fixa pro gráfico */
+    height: 200px;
 }
 .section-chart-area.show { display: block; }
 
-/* --- ESTILO DE TABELA COMPACTO & AÇÕES GRANDES --- */
+/* Tabelas e Botões */
+.table-container { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
 
-.table-container {
-    width: 100%;
-    overflow-x: auto;
-}
+th { text-align: left; padding: 12px 10px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); }
+td { padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,0.02); font-size: 0.9rem; vertical-align: middle; }
 
-table {
-    width: 100%;
-    border-collapse: separate; /* Permite espaçamento entre linhas se quiser */
-    border-spacing: 0;
-}
-
-/* Cabeçalho mais sutil */
-th {
-    text-align: left;
-    padding: 12px 10px; /* Menos espaçamento lateral */
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Células mais compactas */
-td {
-    padding: 10px 10px; /* Reduzi o padding vertical */
-    border-bottom: 1px solid rgba(255,255,255,0.02);
-    font-size: 0.9rem;
-    vertical-align: middle;
-}
-
-/* Coluna de Ações: Fica coladinha na direita */
 th:last-child, td:last-child {
-    width: 100px;       /* Largura fixa suficiente para 2 ícones */
-    min-width: 100px;   /* Garante que não diminua */
-    white-space: nowrap;
-    text-align: center; /* Centraliza os ícones na coluna */
-    padding: 10px 5px;  /* Um pouco de respiro nas laterais */
+    width: 100px; min-width: 100px; white-space: nowrap; text-align: center; padding: 10px 5px;
 }
 
-/* BOTÕES DE AÇÃO MAIORES */
 .btn-icon {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.1rem; /* Aumentei o ícone (antes era pequeno) */
-    padding: 8px;      /* Aumentei a área de clique */
-    cursor: pointer;
-    transition: 0.2s;
-    border-radius: 50%;
-    margin-left: 10px;
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 1.1rem; padding: 8px; cursor: pointer; transition: 0.2s; border-radius: 50%; margin-left: 10px;
 }
+.btn-icon:hover { background: rgba(255,255,255,0.1); color: #fff; transform: scale(1.1); }
+td:first-child { white-space: nowrap; width: 1%; }
 
-.btn-icon:hover {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-    transform: scale(1.1);
-}
-
-/* Ajuste específico para as datas e status não ficarem gigantes */
-td:first-child {
-    white-space: nowrap;
-    width: 1%;
-}
-
-/* --- NOVO ESTILO: BOTÕES PRINCIPAIS (Metas e Cartões) --- */
+/* Botão Novo Principal */
 .btn-main-add {
-    background: var(--primary); /* Amarelo do tema */
-    color: #000000; /* Texto preto para contraste */
-    border: none;
-    padding: 12px 15px; /* Mais gordinho */
-    border-radius: var(--radius);
-    font-weight: 700; /* Negrito */
-    font-size: 1rem;
-    cursor: pointer;
-    display: inline-flex; /* Para alinhar ícone e texto */
-    align-items: center;
-    gap: 12px; /* Espaço entre ícone e texto */
-    transition: all 0.2s ease;
-    margin-bottom: 25px; /* Espaço para o conteúdo abaixo */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    background: var(--primary); color: #000000; border: none; padding: 12px 15px;
+    border-radius: var(--radius); font-weight: 700; font-size: 1rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 12px; transition: all 0.2s ease;
+    margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
-
-.btn-main-add:hover {
-    transform: translateY(-3px); /* Sobe um pouquinho ao passar o mouse */
-    box-shadow: 0 8px 15px rgba(251, 191, 36, 0.4); /* Sombra amarela brilhante */
-}
+.btn-main-add:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(251, 191, 36, 0.4); }
 .btn-main-add i { font-size: 1.1rem; }
+
+/* --- MOBILE NAVIGATION --- */
+.mobile-nav { display: none; }
+
+/* ========================================================= */
+/* M O B I L E   M E D I A                 */
+/* ========================================================= */
+@media (max-width: 768px) {
+
+    /* 0. DESTRAVAR ROLAGEM NO MOBILE (Reforçado) */
+    html, body {
+        height: auto !important;
+        width: 100% !important;
+        overflow-y: auto !important; 
+        overflow-x: hidden !important; 
+        position: static !important; 
+        touch-action: pan-y; 
+    }
+
+    .main {
+        height: auto !important;
+        overflow: visible !important;
+        padding-bottom: 120px; 
+    }
+    
+    /* 1. Layout Geral */
+    body { flex-direction: column; }
+    .sidebar { display: none; }
+
+    .main {
+        width: 100vw;
+        padding: 0;
+        padding-bottom: 90px;
+        overflow-x: hidden;
+    }
+
+    header { padding: 0 20px; height: 70px; }
+    h2 { font-size: 1.2rem; }
+
+    /* 2. Menu Inferior */
+    .mobile-nav {
+        display: flex;
+        position: fixed; bottom: 0; left: 0; width: 100%;
+        height: 70px; background: rgba(15, 23, 42, 0.98);
+        backdrop-filter: blur(10px);
+        border-top: var(--border);
+        display: grid; grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr;
+        align-items: center; justify-items: center;
+        z-index: 999; padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-item {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: var(--text-muted); font-size: 0.7rem; gap: 4px; width: 60px; cursor: pointer;
+    }
+    .mobile-item i { font-size: 1.2rem; margin-bottom: 2px; }
+    .mobile-item.active { color: var(--primary); }
+
+    .mobile-fab {
+        background: var(--primary); color: #0f172a; width: 50px; height: 50px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; box-shadow: 0 0 15px var(--primary-glow);
+        transform: translateY(-20px); border: 4px solid var(--bg-body);
+    }
+
+    /* 3. Grid Adjustments */
+    .kpi-grid { grid-template-columns: 1fr; gap: 15px; }
+    .grid-split { grid-template-columns: 1fr; gap: 15px; }
+    .view-section { padding: 15px; }
+
+    /* 4. TRANSFORMAÇÃO TABELA -> CARDS */
+    .panel table, .panel thead, .panel tbody, .panel th, .panel td, .panel tr,
+    .section-panel table, .section-panel thead, .section-panel tbody, .section-panel th, .section-panel td, .section-panel tr { 
+        display: block; 
+    }
+
+    .panel thead tr, .section-panel thead tr { 
+        position: absolute; top: -9999px; left: -9999px; 
+    }
+
+    .panel {
+        max-height: 60vh; overflow-y: auto; background: transparent; border: none; padding: 0 5px; overflow: visible;
+    }
+    
+    .panel-header {
+        position: sticky; top: 0; z-index: 30; background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(10px); margin-bottom: 10px; border-radius: 12px;
+    }
+
+    /* ESTILO GERAL DOS CARDS */
+    .panel tbody tr, .section-panel tbody tr { 
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 12px 15px;
+        position: relative;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        min-height: 60px;
+    }
+
+    .panel tbody tr:active, .section-panel tbody tr:active { transform: scale(0.99); }
+    .panel td, .section-panel td { border: none; padding: 0; margin: 0; position: relative; width: 100%; text-align: left; }
+
+    /* --- REGRAS ESPECÍFICAS DE TABELAS (O ALINHAMENTO QUE VOCÊ PEDIU) --- */
+
+    /* --- GASTOS VARIÁVEIS (Correção Final de Posição) --- */
+    
+    /* Data */
+    #table-variable td:nth-of-type(1) { 
+        font-size: 0.75rem; 
+        color: var(--text-muted); 
+        margin-bottom: 4px; 
+    }
+    
+    /* Descrição */
+    #table-variable td:nth-of-type(2) { 
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: #fff;
+        padding-right: 110px; /* Proteção contra texto longo */
+        line-height: 1.2;
+        margin-bottom: 6px;
+    }
+
+    /* Categoria */
+    #table-variable td:nth-of-type(3) .status-badge {
+        padding: 4px 10px; 
+        font-size: 0.7rem;
+    }
+    
+    /* Valor (Canto Superior Direito) */
+    #table-variable td:nth-of-type(4) { 
+        position: absolute; 
+        top: 15px;      
+        right: 20px;    
+        font-size: 1rem; 
+        font-weight: bold; 
+        color: #fff;
+        text-align: right; 
+        width: auto;
+    }
+
+    /* Ações (Canto Inferior Direito - BLINDADO) */
+    #table-variable td:nth-of-type(5) { 
+        position: absolute !important; 
+        bottom: 12px;   
+        right: 20px;    
+        width: auto !important; 
+        margin: 0; 
+        padding: 0; 
+        border: none;
+        display: flex;
+        justify-content: flex-end; 
+        gap: 10px;
+    }
+    
+    /* --- DESPESAS FIXAS (Correção de Posicionamento) --- */
+    
+    /* 1. Status */
+    #body-fixed td:nth-of-type(1) { 
+        margin-bottom: 6px; 
+        transform: scale(0.9); 
+        transform-origin: left; 
+    } 
+    
+    /* 2. Descrição */
+    #body-fixed td:nth-of-type(2) { 
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: #fff; 
+        margin-bottom: 4px; 
+        padding-right: 100px; /* Protege para o texto não bater no valor */
+    } 
+    
+    /* 3. Categoria */
+    #body-fixed td:nth-of-type(3) { 
+        display: inline-block; 
+        margin-bottom: 5px; 
+    }
+    #body-fixed td:nth-of-type(3) .status-badge { 
+        padding: 4px 10px; 
+        font-size: 0.7rem; 
+    }
+
+    /* 4. Valor (Canto Superior Direito) */
+    #body-fixed td:nth-of-type(4) { 
+        position: absolute; 
+        top: 15px; 
+        right: 20px; 
+        font-size: 1rem; 
+        font-weight: bold; 
+        width: auto; 
+    } 
+    
+    /* 5. Ações (Canto Inferior Direito - CORRIGIDO) */
+    #body-fixed td:nth-of-type(5) { 
+        position: absolute !important; /* Força a posição absoluta */
+        bottom: 12px; 
+        right: 20px; 
+        width: auto !important; /* Importante: impede que ocupe a linha toda */
+        border: none; 
+        padding: 0; 
+        display: flex;
+        gap: 10px; 
+        justify-content: flex-end;
+    }
+
+    /* --- ENTRADAS (Correção Final de Posição) --- */
+    
+    /* Descrição */
+    #body-income td:nth-of-type(1) { 
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        color: #fff; 
+        margin-bottom: 5px; 
+        padding-right: 100px; /* Proteção extra */
+    }
+
+    /* Valor */
+    #body-income td:nth-of-type(2) { 
+        font-size: 1.2rem; 
+        font-weight: bold; 
+        color: var(--success) !important; 
+    }
+
+    /* Ações (Canto Inferior Direito - BLINDADO) */
+    #body-income td:nth-of-type(3) { 
+        position: absolute !important; 
+        bottom: 15px; 
+        right: 20px; /* Alinhado com os outros (20px) */
+        width: auto !important;
+        border: none;
+        padding: 0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn-icon { width: 35px; height: 35px; font-size: 0.9rem; background: rgba(255,255,255,0.1); }
+    .modal-box { width: 95%; padding: 20px; max-height: 90vh; overflow-y: auto; }
+    .month-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 10px; }
+    .month-check { padding: 12px 0; font-size: 0.8rem; }
+
+    /* Ajuste do Container para Minimizar */
+    .section-panel .section-body {
+        overflow: visible; 
+        padding: 0 15px;   
+        transition: max-height 0.4s ease, opacity 0.3s ease;
+    }
+    .section-panel .section-body.open { max-height: 5000px; opacity: 1; }
+
+    /* Header Mobile */
+    header {
+        height: auto; min-height: auto; padding: 15px; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    header h2 { font-size: 1rem; white-space: nowrap; }
+
+    #month-control { width: auto; margin: 0; }
+    #month-control .select-wrapper {
+        width: auto !important; min-width: 0 !important; padding: 0 8px !important; height: 35px; display: flex; align-items: center;
+    }
+    #month-control select { padding: 7px 15px 7px 0px !important; font-size: 0.8rem !important; height: 100%; }
+    .select-wrapper::after { right: 5px; font-size: 0.6rem; }
+}
