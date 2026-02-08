@@ -672,6 +672,9 @@ function saveTransactionForm() {
     if(!desc || val <= 0) { alert('Preencha descrição e valor.'); return; }
 
     if (type === 'fixed') {
+        // Captura se a caixinha "Já foi pago?" está marcada
+        const isPaidInput = document.getElementById('trans-paid').checked;
+
         MONTHS.forEach(m => {
             const isChecked = document.querySelector(`.month-check input[value="${m}"]`).checked;
             const list = db.months[m].fixed;
@@ -684,21 +687,34 @@ function saveTransactionForm() {
             }
 
             if (isChecked) {
-                // Pega a categoria do formulário ou define como 'Contas' se estiver vazio
                 const catValue = document.getElementById('trans-cat').value || 'Contas';
                 
+                // Lógica Inteligente: Só marca como pago se for o Mês Atual
+                // (Não faz sentido marcar "Janeiro" como pago se estamos em "Fevereiro" criando a conta agora)
+                const statusPago = (m === currentMonth) ? isPaidInput : false;
+
                 if (idx > -1) {
+                    // EDITANDO
                     list[idx].desc = desc;
                     list[idx].val = val;
-                    list[idx].cat = catValue; // <--- SALVA A CATEGORIA
-                    if (m === currentMonth) list[idx].paid = document.getElementById('trans-paid').checked;
+                    list[idx].cat = catValue;
+                    
+                    // Se for o mês atual, atualiza o status de pagamento
+                    if (m === currentMonth) list[idx].paid = isPaidInput;
+                    
                 } else {
-                    // CRIA NOVO COM CATEGORIA
-                    list.push({ id: Date.now() + Math.random(), desc: desc, val: val, cat: catValue, paid: false });
+                    // CRIANDO NOVA (AQUI ESTAVA O ERRO)
+                    list.push({ 
+                        id: Date.now() + Math.random(), 
+                        desc: desc, 
+                        val: val, 
+                        cat: catValue, 
+                        paid: statusPago // <--- CORREÇÃO: Antes estava 'false' fixo
+                    });
                 }
             }
         });
-    } 
+    }
     else if (type === 'variable') {
          if (currentTransId) {
             const idx = db.months[currentMonth][type].findIndex(x => x.id === currentTransId);
@@ -1000,6 +1016,8 @@ function renderCards() {
     // 1. Identificar Mês Atual e Mês Anterior
     const currentMonthName = document.getElementById('month-select').value;
     const currentIdx = MONTHS.indexOf(currentMonthName);
+    
+    // Pega o mês anterior (se for Janeiro, pega Dezembro)
     const prevIdx = (currentIdx - 1 + 12) % 12; 
     const prevMonthName = MONTHS[prevIdx];
     
@@ -1009,18 +1027,22 @@ function renderCards() {
     }
 
     db.cards.forEach(card => {
-        const closingDay = Number(card.closing) || 31; // Se não tiver dia, assume fim do mês
+        const closingDay = Number(card.closing) || 31; // Dia do fechamento
 
-        // --- CÁLCULO DA FATURA INTELIGENTE ---
+        // --- CÁLCULO DA FATURA MENSAL (O Clássico) ---
+        
+        // A) Soma gastos do mês ANTERIOR que foram feitos DEPOIS do fechamento
+        // (Entram na fatura deste mês)
         const prevMonthTotal = db.months[prevMonthName].variable
             .filter(item => {
                 if (item.method !== card.id) return false;
                 if (!item.date) return false;
-                const day = parseInt(item.date.split('-')[2]);
+                const day = parseInt(item.date.split('-')[2]); // Pega o dia da data
                 return day > closingDay;
             })
             .reduce((sum, item) => sum + Number(item.val), 0);
 
+        // B) Soma gastos do mês ATUAL que foram feitos ANTES do fechamento
         const currentMonthTotal = db.months[currentMonthName].variable
             .filter(item => {
                 if (item.method !== card.id) return false;
@@ -1031,8 +1053,15 @@ function renderCards() {
             .reduce((sum, item) => sum + Number(item.val), 0);
 
         const invoiceTotal = prevMonthTotal + currentMonthTotal;
+        
+        // Limite Disponível (Simples: Limite - Fatura Atual)
+        // Nota: Se quiser maior precisão no limite global, precisaria somar tudo, 
+        // mas para "Visão Mensal" isso costuma bastar.
         const available = card.limit - invoiceTotal;
-        const pct = Math.min(100, (invoiceTotal / card.limit) * 100);
+        const pct = card.limit > 0 ? Math.min(100, (invoiceTotal / card.limit) * 100) : 0;
+        
+        // Cor da barra
+        const progressColor = available < 0 ? 'var(--danger)' : '#fff';
 
         const cardEl = document.createElement('div');
         cardEl.className = 'credit-card-widget';
@@ -1055,10 +1084,12 @@ function renderCards() {
             </div>
             <div style="margin-top:15px;">
                 <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:5px; opacity: 0.9;">
-                    <span>Limite Usado ${pct.toFixed(0)}%</span>
+                    <span>Fatura: ${pct.toFixed(0)}% do Limite</span>
                     <span>Disp: ${formatBRL(available)}</span>
                 </div>
-                <div class="progress-bg" style="background: rgba(255,255,255,0.2);"><div class="progress-fill" style="width:${pct}%; background:#fff; box-shadow: 0 0 10px rgba(255,255,255,0.5);"></div></div>
+                <div class="progress-bg" style="background: rgba(255,255,255,0.2);">
+                    <div class="progress-fill" style="width:${pct}%; background:${progressColor}; box-shadow: 0 0 10px rgba(255,255,255,0.5);"></div>
+                </div>
             </div>
             <div style="margin-top:15px; text-align:right;">
                 <button onclick="payInvoice('${card.id}', ${invoiceTotal})" class="btn-pay-invoice">Pagar Fatura</button>
@@ -1070,21 +1101,31 @@ function renderCards() {
 
 function payInvoice(cardId, amount) {
     if(amount <= 0) return alert("Fatura zerada!");
+    
+    // Pega o mês que está na tela (ex: Fevereiro)
     const currentMonth = document.getElementById('month-select').value;
-    if(confirm(`Deseja lançar um pagamento de ${formatBRL(amount)} agora? Isso vai descontar do seu saldo.`)) {
-        const cardName = db.cards.find(c => c.id === cardId).name;
+    
+    if(confirm(`Deseja lançar um pagamento de ${formatBRL(amount)}? Isso vai descontar do seu saldo.`)) {
+        
+        // Encontra o nome do cartão para ficar bonito no extrato
+        const cardObj = db.cards.find(c => c.id === cardId);
+        const cardName = cardObj ? cardObj.name : 'Cartão';
+
+        // Cria o lançamento
         db.months[currentMonth].variable.push({
             id: Date.now(),
             desc: `Pagamento Fatura ${cardName}`,
             val: amount,
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().split('T')[0], // Data de hoje
             cat: 'Pagamentos',
-            method: 'debit'
+            method: 'debit' // Sai do débito (dinheiro vivo)
         });
+
         saveData();
-        renderMonthly();
-        renderCards();
-        alert("Pagamento registrado!");
+        renderMonthly(); // Atualiza a tabela de gastos
+        
+        // Feedback visual
+        alert("Pagamento lançado no fluxo de caixa!");
     }
 }
 
