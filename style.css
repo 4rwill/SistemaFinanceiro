@@ -720,31 +720,112 @@ td:first-child { white-space: nowrap; width: 1%; }
     header { padding: 0 20px; height: 70px; }
     h2 { font-size: 1.2rem; }
 
-    /* 2. Menu Inferior */
+    /* --- MENU MOBILE (Visual Sólido e Profissional) --- */
     .mobile-nav {
-        display: flex;
-        position: fixed; bottom: 0; left: 0; width: 100%;
-        height: 70px; background: rgba(15, 23, 42, 0.98);
-        backdrop-filter: blur(10px);
-        border-top: var(--border);
-        display: grid; grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr;
-        align-items: center; justify-items: center;
-        z-index: 999; padding-bottom: env(safe-area-inset-bottom);
+        display: grid; /* Mantém o grid para alinhar os 5 itens */
+        grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr;
+        align-items: center; 
+        justify-items: center;
+        
+        position: fixed; 
+        bottom: 0; 
+        left: 0; 
+        width: 100%;
+        height: 70px;
+        
+        /* CORREÇÃO: Fundo Sólido (não transparente) para leitura perfeita */
+        background: #1e293b; 
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        
+        /* Sombra forte para separar o menu do conteúdo atrás dele */
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        
+        z-index: 999; 
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .mobile-item {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        color: var(--text-muted); font-size: 0.7rem; gap: 4px; width: 60px; cursor: pointer;
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center;
+        color: var(--text-muted); 
+        font-size: 0.7rem; 
+        gap: 4px; 
+        width: 100%; 
+        height: 100%;
+        cursor: pointer;
+        transition: 0.2s;
     }
+    
+    .mobile-item:active { transform: scale(0.9); }
     .mobile-item i { font-size: 1.2rem; margin-bottom: 2px; }
     .mobile-item.active { color: var(--primary); }
 
+    /* BOTÃO FLUTUANTE CENTRAL (Ajustado para o fundo sólido) */
     .mobile-fab {
-        background: var(--primary); color: #0f172a; width: 50px; height: 50px;
-        border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        font-size: 1.5rem; box-shadow: 0 0 15px var(--primary-glow);
-        transform: translateY(-20px); border: 4px solid var(--bg-body);
+        background: var(--primary); 
+        color: #0f172a; 
+        width: 56px; /* Levemente maior */
+        height: 56px;
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        font-size: 1.5rem; 
+        box-shadow: 0 4px 15px var(--primary-glow);
+        
+        /* Efeito de "levitação" */
+        transform: translateY(-25px); 
+        
+        /* O SEGREDINHO: Borda grossa da MESMA cor do menu (#1e293b) para fazer o recorte perfeito */
+        border: 6px solid #1e293b; 
     }
+
+    /* --- MENU MOBILE (DRAWER) --- */
+.mobile-drawer {
+    width: 100%;
+    background: #1e293b;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 20px 24px 40px 24px; /* Mais padding embaixo por causa do iPhone */
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    
+    /* Animação de entrada */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Quando o modal abre, a gaveta sobe */
+.modal-overlay.open .mobile-drawer {
+    transform: translateY(0);
+}
+
+.drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.drawer-item:active {
+    opacity: 0.6;
+    transform: scale(0.98);
+}
+
+.drawer-item .icon-box {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+}
+
+
 
     /* 3. Grid Adjustments */
     .kpi-grid { grid-template-columns: 1fr; gap: 15px; }
