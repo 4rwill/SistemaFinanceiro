@@ -30,6 +30,9 @@ let currentGoalId = null;
 let selectedGoalIcon = 'fa-bullseye';
 let originalDesc = null;
 let selectedCardColor = '#111';
+let sectionCharts = { fixed: null, variable: null };
+
+
 
 // Estrutura Inicial do Banco de Dados
 let db = { months: {}, goals: [], cards: [] };
@@ -406,6 +409,8 @@ function renderMonthly() {
     renderTableRows(m, 'income');
     
     updateCalculations();
+    renderSectionChart('fixed');
+    renderSectionChart('variable'); 
 }
 
 function updateCategoryDropdown(month) {
@@ -830,8 +835,14 @@ function updateCategoryChart(data) {
             labels: Object.keys(cats),
             datasets: [{
                 data: Object.values(cats),
-                backgroundColor: ['#fbbf24', '#34d399', '#f87171', '#60a5fa', '#a78bfa'],
-                borderWidth: 0
+                backgroundColor: [
+                '#fbbf24', '#34d399', '#f87171', '#60a5fa', '#a78bfa', // Originais
+                '#fb923c', '#2dd4bf', '#f472b6', '#38bdf8', '#c084fc', // Variações Médias
+                '#a3e635', '#22d3ee', '#e879f9', '#fb7185', '#94a3b8'  // Tons Complementares e Cinza
+                ],                
+                borderColor: '#ffffff',
+                borderWidth: 1.7,
+                hoverOffset: 4
             }]
         },
         options: {
@@ -1140,6 +1151,19 @@ function toggleSectionBody(type, btn) {
         body.classList.remove('open');
         icon.className = 'fas fa-chevron-down'; // Ícone aponta pra baixo (fechado)
         btn.classList.remove('active');
+
+        const chartArea = document.getElementById(`chart-area-${type}`);
+        if (chartArea) {
+            chartArea.classList.remove('show');
+        }
+        
+        const chartBtn = document.querySelector(`#header-${type} .btn-small-action[onclick*="toggleSectionChart"]`);
+        // 3. DESLIGAR O BOTÃO NA FORÇA
+        if (chartBtn) {
+            chartBtn.classList.remove('active');
+        }
+
+        
     } else {
         body.classList.add('open');
         icon.className = 'fas fa-chevron-up'; // Ícone aponta pra cima (aberto)
@@ -1148,23 +1172,98 @@ function toggleSectionBody(type, btn) {
 }
 
 function toggleSectionChart(type, btn) {
-    // Essa função vai ser turbinada na próxima etapa, por enquanto só mostra a div
     const chartArea = document.getElementById(`chart-area-${type}`);
-    
+    const body = document.getElementById(`body-${type}`);
+    const iconBtn = document.querySelector(`#header-${type} .btn-small-action:last-child`); // Botão da seta
+
+    // 1. Lógica de Abrir/Fechar
     if (chartArea.classList.contains('show')) {
         chartArea.classList.remove('show');
         btn.classList.remove('active');
     } else {
-        // Garante que o corpo esteja aberto se quiser ver o gráfico
-        const body = document.getElementById(`body-${type}`);
-        if(!body.classList.contains('open')) {
-            toggleSectionBody(type, document.querySelector(`#header-${type} .btn-small-action:last-child`));
+        // Se a tabela estiver fechada, abre ela primeiro
+        if (!body.classList.contains('open')) {
+            toggleSectionBody(type, iconBtn);
         }
         
         chartArea.classList.add('show');
         btn.classList.add('active');
         
-        // AQUI vamos chamar a renderização do gráfico na próxima etapa
-        console.log(`Renderizar gráfico de ${type} aqui...`);
+        // 2. Desenha o gráfico imediatamente
+        renderSectionChart(type);
     }
+}
+
+function renderSectionChart(type) {
+    const chartArea = document.getElementById(`chart-area-${type}`);
+    // Só desenha se a área estiver visível (economiza processamento)
+    if (!chartArea || !chartArea.classList.contains('show')) return;
+
+    const ctx = document.getElementById(`chart-${type}`).getContext('2d');
+    const currentMonth = document.getElementById('month-select').value;
+    
+    // Pega a lista correta (fixa ou variável)
+    const list = db.months[currentMonth][type] || [];
+
+    // Agrupa dados por Categoria
+    const grouped = {};
+    list.forEach(item => {
+        // Filtra receitas se estiver nas variáveis por engano
+        if (item.cat === 'Receita' || item.cat === 'Salário') return;
+        
+        const cat = item.cat || 'Geral';
+        // Usa Math.abs para garantir números positivos
+        grouped[cat] = (grouped[cat] || 0) + Math.abs(Number(item.val));
+    });
+
+    const labels = Object.keys(grouped);
+    const dataValues = Object.values(grouped);
+
+    // Destrói gráfico anterior se existir para não "bugar" ao passar o mouse
+    if (sectionCharts[type]) {
+        sectionCharts[type].destroy();
+    }
+
+    // Se não tiver dados, não desenha nada (ou desenha vazio)
+    if (labels.length === 0) return;
+
+    // Paleta de cores
+    const colors = [
+        '#fbbf24', '#34d399', '#f87171', '#60a5fa', '#a78bfa', 
+        '#fb923c', '#2dd4bf', '#f472b6', '#38bdf8', '#c084fc',
+        '#a3e635', '#22d3ee', '#e879f9', '#fb7185', '#94a3b8'
+    ];
+
+    // Cria o novo gráfico
+    sectionCharts[type] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: dataValues,
+                backgroundColor: labels.map((_, i) => colors[i % colors.length]),
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right', // Legenda ao lado
+                    labels: { color: '#94a3b8', font: { family: 'Outfit', size: 11 }, boxWidth: 12 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.label}: ${formatBRL(context.raw)}`;
+                        }
+                    }
+                }
+            },
+            layout: { padding: 0 },
+            cutout: '65%'
+        }
+    });
 }

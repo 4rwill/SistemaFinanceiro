@@ -174,7 +174,7 @@
                     </div>
                 </div>
                 
-                <div class="card" style="display: flex; align-items: center; justify-content: center;">
+                <div class="card" style="display: flex; align-items: center; justify-content: center; display: none;">
                     <canvas id="catChart" style="max-height: 100px;"></canvas>
                 </div>
             </div>
@@ -200,6 +200,10 @@
                     </div>
 
                     <div class="section-body" id="body-fixed">
+                        <div class="section-chart-area" id="chart-area-fixed">
+                            <canvas id="chart-fixed"></canvas>
+                        </div>
+                        
                         <div class="table-container">
                             <table>
                                 <thead>
@@ -223,7 +227,7 @@
                             <span class="section-total" id="total-variable">R$ 0,00</span>
                         </div>
                         <div class="section-actions">
-                            <button class="btn-small-action" onclick="toggleSectionChart('variable', this)">
+                            <button class="btn-small-action" onclick="toggleSectionChart('variable', this)" title="Ver Gráfico">
                                 <i class="fas fa-chart-pie"></i>
                             </button>
                             <button class="btn-small-action" onclick="openTransactionModal('variable')">
@@ -235,7 +239,8 @@
                         </div>
                     </div>
 
-                    <div class="section-body open" id="body-variable"> <div class="section-chart-area" id="chart-area-variable">
+                    <div class="section-body open" id="body-variable"> 
+                        <div class="section-chart-area" id="chart-area-variable">
                             <canvas id="chart-variable"></canvas>
                         </div>
                         <div style="padding: 10px 15px; border-bottom: var(--border);">
