@@ -301,6 +301,11 @@ function applyFilter(cat) {
     const m = document.getElementById('month-select').value;
     renderTableRows(m, 'variable');
 }
+function applyFilterFixed(cat) {
+    viewState.filterFixed = cat;
+    const m = document.getElementById('month-select').value;
+    renderTableRows(m, 'fixed');
+}
 
 function applySort(col) {
     if (viewState.sortCol === col) {
@@ -414,28 +419,63 @@ function renderMonthly() {
 }
 
 function updateCategoryDropdown(month) {
-    const list = db.months[month].variable;
-    const cats = new Set(['all']);
-    list.forEach(item => { if(item.cat) cats.add(item.cat); });
+    // --- PARTE 1: VARIÁVEIS ---
+    const listVar = db.months[month].variable;
+    const catsVar = new Set(['all']);
     
-    const select = document.getElementById('filter-category');
-    const currentSelection = viewState.filter;
-    
-    select.innerHTML = '';
-    const optAll = document.createElement('option');
-    optAll.value = 'all'; optAll.innerText = 'Todas Categorias';
-    select.appendChild(optAll);
-
-    cats.forEach(c => {
-        if(c !== 'all') {
-            const opt = document.createElement('option');
-            opt.value = c; opt.innerText = c;
-            select.appendChild(opt);
+    // Coleta categorias das Variáveis (ignorando Receitas)
+    listVar.forEach(item => { 
+        if(item.cat && item.cat !== 'Receita' && item.cat !== 'Salário') {
+            catsVar.add(item.cat); 
         }
     });
+    
+    // Atualiza o Select das VARIÁVEIS
+    const selectVar = document.getElementById('filter-category');
+    if(selectVar) {
+        // Guarda o valor que estava selecionado antes de limpar
+        const currentSelection = viewState.filter;
+        
+        selectVar.innerHTML = ''; // Limpa tudo
+        
+        catsVar.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; 
+            opt.innerText = c === 'all' ? 'Todas as Categorias' : c;
+            selectVar.appendChild(opt);
+        });
 
-    if(cats.has(currentSelection)) select.value = currentSelection;
-    else { select.value = 'all'; viewState.filter = 'all'; }
+        // Tenta manter a seleção ou volta para 'all'
+        selectVar.value = catsVar.has(currentSelection) ? currentSelection : 'all';
+    }
+
+    // --- PARTE 2: FIXAS ---
+    const listFixed = db.months[month].fixed;
+    const catsFixed = new Set(['all']);
+
+    // Coleta categorias das Fixas
+    listFixed.forEach(item => { 
+        if(item.cat) catsFixed.add(item.cat); 
+    });
+
+    // Atualiza o Select das FIXAS
+    const selectFixed = document.getElementById('filter-category-fixed');
+    if(selectFixed) {
+        // Guarda o valor que estava selecionado
+        const currentFixedSelection = viewState.filterFixed || 'all';
+        
+        selectFixed.innerHTML = ''; // Limpa tudo
+
+        catsFixed.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; 
+            opt.innerText = c === 'all' ? 'Todas as Categorias' : c;
+            selectFixed.appendChild(opt);
+        });
+
+        // Tenta manter a seleção
+        selectFixed.value = catsFixed.has(currentFixedSelection) ? currentFixedSelection : 'all';
+    }
 }
 
 function renderTableRows(month, type) {
@@ -445,11 +485,27 @@ function renderTableRows(month, type) {
     if(type === 'fixed') {
         tbody = document.getElementById('tbody-fixed');
         tbody.innerHTML = '';
-        originalList.forEach((item, idx) => {
+        
+        // 1. Cria uma cópia da lista para filtrar
+        let displayList = [...originalList];
+
+        // 2. Aplica o filtro se não for "all"
+        if (viewState.filterFixed && viewState.filterFixed !== 'all') {
+            displayList = displayList.filter(item => item.cat === viewState.filterFixed);
+        }
+
+        // 3. Renderiza a lista filtrada (displayList em vez de originalList)
+        displayList.forEach((item, idx) => {
+            // ... (MANTENHA O CONTEÚDO ORIGINAL DO SEU HTML AQUI DENTRO) ...
+            // Vou colocar o código padrão aqui para facilitar, mas use o seu se tiver mudado algo:
             const tr = document.createElement('tr');
+            
+            // Precisamos achar o índice original para o botão de excluir funcionar certo
+            const realIndex = originalList.indexOf(item); 
+
             tr.innerHTML = `
                 <td>
-                    <div class="status-badge ${item.paid ? 'status-paid' : 'status-pending'}" onclick="toggleStatus('${month}', ${idx})">
+                    <div class="status-badge ${item.paid ? 'status-paid' : 'status-pending'}" onclick="toggleStatus('${month}', ${realIndex})">
                         <i class="fas ${item.paid ? 'fa-check' : 'fa-clock'}"></i> ${item.paid ? 'PAGO' : 'PEND'}
                     </div>
                 </td>
@@ -459,13 +515,13 @@ function renderTableRows(month, type) {
                 <td>
                     <div style="display:flex; gap:10px;">
                         <button class="btn-icon" onclick="openTransactionModal('fixed', ${item.id})"><i class="fas fa-pencil-alt"></i></button>
-                        <button class="btn-icon" style="color:#ef4444" onclick="delRow('${month}', 'fixed', ${idx})"><i class="fas fa-trash"></i></button>
+                        <button class="btn-icon" style="color:#ef4444" onclick="delRow('${month}', 'fixed', ${realIndex})"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
         });
-    } 
+    }
     else if(type === 'variable') {
         tbody = document.getElementById('tbody-variable');
         tbody.innerHTML = '';
@@ -1156,7 +1212,7 @@ function toggleSectionBody(type, btn) {
         if (chartArea) {
             chartArea.classList.remove('show');
         }
-        
+
         const chartBtn = document.querySelector(`#header-${type} .btn-small-action[onclick*="toggleSectionChart"]`);
         // 3. DESLIGAR O BOTÃO NA FORÇA
         if (chartBtn) {
