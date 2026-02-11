@@ -654,6 +654,8 @@ select option { background-color: var(--bg-body); color: var(--text-main); paddi
 }
 .section-chart-area.show { display: block; }
 
+
+
 /* Tabelas e Botões */
 .table-container { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -1027,3 +1029,4 @@ td:first-child { white-space: nowrap; width: 1%; }
     #month-control select { padding: 7px 15px 7px 0px !important; font-size: 0.8rem !important; height: 100%; }
     .select-wrapper::after { right: 5px; font-size: 0.6rem; }
 }
+
