@@ -203,6 +203,13 @@
                         <div class="section-chart-area" id="chart-area-fixed">
                             <canvas id="chart-fixed"></canvas>
                         </div>
+
+                        <div class="filter-toolbar">
+                            <i class="fas fa-filter icon-filter"></i>
+                            <select id="filter-category-fixed" onchange="applyFilterFixed(this.value)" class="select-styled">
+                                <option value="all">Todas as Categorias</option>
+                            </select>
+                        </div>
                         
                         <div class="table-container">
                             <table>
@@ -243,8 +250,9 @@
                         <div class="section-chart-area" id="chart-area-variable">
                             <canvas id="chart-variable"></canvas>
                         </div>
-                        <div style="padding: 10px 15px; border-bottom: var(--border);">
-                            <select id="filter-category" onchange="applyFilter(this.value)" class="input-clean" style="font-size: 0.8rem;">
+                        <div class="filter-toolbar">
+                            <i class="fas fa-filter icon-filter"></i>
+                            <select id="filter-category" onchange="applyFilter(this.value)" class="select-styled">
                                 <option value="all">Todas as Categorias</option>
                             </select>
                         </div>
@@ -300,7 +308,7 @@
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Gerencie limites e faturas</p>
                 </div>
                 <button class="btn-main-add" onclick="openCardModal()">
-                    <i class="fas fa-credit-card"></i> Adicionar Cartão
+                    <i class="fas fa-plus-circle"></i>
                 </button>
             </div>
 
@@ -333,6 +341,7 @@
                         <div class="color-opt" style="background:#ef4444;" onclick="selectCardColor('#ef4444', this)"></div>
 
                         <div class="color-picker-wrapper" id="custom-picker-btn">
+                            <i class="fa-solid fa-palette"></i>
                             <input type="color" oninput="selectCardColor(this.value, this.parentElement)">
                         </div>
                     </div> 
@@ -351,7 +360,7 @@
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Acompanhe o progresso dos seus sonhos</p>
                 </div>
                 <button class="btn-main-add" onclick="openGoalModal()">
-                <i class="fas fa-plus-circle"></i> Criar Nova Meta
+                <i class="fas fa-plus-circle"></i> 
             </button>
             </div>
             
