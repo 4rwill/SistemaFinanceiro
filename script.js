@@ -2,15 +2,15 @@
 const DB_KEY = 'SIP_FINANCE_V3';
 const MONTHS = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const DEFAULT_CATEGORIES = [
-    { name: 'Alimentação', icon: 'fa-utensils' },
-    { name: 'Moradia', icon: 'fa-home' },
-    { name: 'Transporte', icon: 'fa-car' },
-    { name: 'Lazer', icon: 'fa-gamepad' },
-    { name: 'Saúde', icon: 'fa-heartbeat' },
-    { name: 'Educação', icon: 'fa-graduation-cap' },
-    { name: 'Compras', icon: 'fa-shopping-bag' },
-    { name: 'Serviços', icon: 'fa-tools' },
-    { name: 'Viagem', icon: 'fa-plane' }
+    { name: 'ALIMENTAÇÃO', icon: 'fa-utensils' },
+    { name: 'MORADIA', icon: 'fa-home' },
+    { name: 'TRANSPORTE', icon: 'fa-car' },
+    { name: 'LAZER', icon: 'fa-gamepad' },
+    { name: 'SAÚDE', icon: 'fa-heartbeat' },
+    { name: 'EDUCAÇÃO', icon: 'fa-graduation-cap' },
+    { name: 'COMPRAS', icon: 'fa-shopping-bag' },
+    { name: 'SERVIÇOS', icon: 'fa-tools' },
+    { name: 'VIAGEM', icon: 'fa-plane' }
 ];
 
 // --- FIREBASE SETUP (O NOVO MOTOR) ---
@@ -82,7 +82,7 @@ function setupUI() {
 
     const labelMenu = document.getElementById('sidebar-month-label');
     if(labelMenu) {
-        const mesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+        const mesCapitalizado = nomeMes === 'marco' ? 'Março' : nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
         labelMenu.innerText = `Gestão de ${mesCapitalizado}`;
     }
 
@@ -403,10 +403,12 @@ function renderDashboard() {
 function renderMonthly() {
     const m = document.getElementById('month-select').value;
     
+    const nomeExibicao = m === 'marco' ? 'MARÇO' : m.toUpperCase();
+    
     const header = document.getElementById('header-month-display');
-    if(header) header.innerText = m.toUpperCase();
+    if(header) header.innerText = nomeExibicao;
     const card = document.getElementById('month-name-display');
-    if(card) card.innerText = m.toUpperCase();
+    if(card) card.innerText = nomeExibicao;
     
     updateCategoryDropdown(m);
     renderTableRows(m, 'fixed');
@@ -423,29 +425,25 @@ function updateCategoryDropdown(month) {
     const listVar = db.months[month].variable;
     const catsVar = new Set(['all']);
     
-    // Coleta categorias das Variáveis (ignorando Receitas)
     listVar.forEach(item => { 
-        if(item.cat && item.cat !== 'Receita' && item.cat !== 'Salário') {
-            catsVar.add(item.cat); 
+        if(item.cat) {
+            const catUpper = item.cat.toUpperCase().trim();
+            if(catUpper !== 'RECEITA' && catUpper !== 'SALÁRIO') {
+                catsVar.add(catUpper); 
+            }
         }
     });
     
-    // Atualiza o Select das VARIÁVEIS
     const selectVar = document.getElementById('filter-category');
     if(selectVar) {
-        // Guarda o valor que estava selecionado antes de limpar
         const currentSelection = viewState.filter;
-        
-        selectVar.innerHTML = ''; // Limpa tudo
-        
+        selectVar.innerHTML = ''; 
         catsVar.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c; 
             opt.innerText = c === 'all' ? 'Todas as Categorias' : c;
             selectVar.appendChild(opt);
         });
-
-        // Tenta manter a seleção ou volta para 'all'
         selectVar.value = catsVar.has(currentSelection) ? currentSelection : 'all';
     }
 
@@ -453,27 +451,20 @@ function updateCategoryDropdown(month) {
     const listFixed = db.months[month].fixed;
     const catsFixed = new Set(['all']);
 
-    // Coleta categorias das Fixas
     listFixed.forEach(item => { 
-        if(item.cat) catsFixed.add(item.cat); 
+        if(item.cat) catsFixed.add(item.cat.toUpperCase().trim()); 
     });
 
-    // Atualiza o Select das FIXAS
     const selectFixed = document.getElementById('filter-category-fixed');
     if(selectFixed) {
-        // Guarda o valor que estava selecionado
         const currentFixedSelection = viewState.filterFixed || 'all';
-        
-        selectFixed.innerHTML = ''; // Limpa tudo
-
+        selectFixed.innerHTML = ''; 
         catsFixed.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c; 
             opt.innerText = c === 'all' ? 'Todas as Categorias' : c;
             selectFixed.appendChild(opt);
         });
-
-        // Tenta manter a seleção
         selectFixed.value = catsFixed.has(currentFixedSelection) ? currentFixedSelection : 'all';
     }
 }
@@ -491,7 +482,7 @@ function renderTableRows(month, type) {
 
         // 2. Aplica o filtro se não for "all"
         if (viewState.filterFixed && viewState.filterFixed !== 'all') {
-            displayList = displayList.filter(item => item.cat === viewState.filterFixed);    
+            displayList = displayList.filter(item => (item.cat || '').toUpperCase().trim() === viewState.filterFixed);    
         }
 
         const totalFixedFiltered = displayList.reduce((sum, item) => sum + Number(item.val), 0);
@@ -513,7 +504,7 @@ function renderTableRows(month, type) {
                     </div>
                 </td>
                 <td>${item.desc}</td>
-                <td><span class="status-badge status-pending" style="background:rgba(255, 255, 255, 0.05); color:var(--text-muted)">${item.cat || 'Geral'}</span></td>
+                <td><span class="status-badge status-pending" style="background:rgba(255, 255, 255, 0.05); color:var(--text-muted)">${(item.cat || 'GERAL').toUpperCase().trim()}</span></td>
                 <td>${formatBRL(item.val)}</td>
                 <td>
                     <div style="display:flex; gap:10px;">
@@ -532,7 +523,7 @@ function renderTableRows(month, type) {
         let displayList = originalList.map((item, index) => ({ ...item, originalIndex: index }));
         
         if (viewState.filter !== 'all') {
-            displayList = displayList.filter(item => item.cat === viewState.filter);
+            displayList = displayList.filter(item => (item.cat || '').toUpperCase().trim() === viewState.filter);
         }
 
         const totalVarFiltered = displayList.reduce((sum, item) => sum + Number(item.val), 0);
@@ -555,7 +546,7 @@ function renderTableRows(month, type) {
             tr.innerHTML = `
                 <td>${dateDisplay}</td>
                 <td>${item.desc}</td>
-                <td><span class="status-badge status-pending" style="background:rgba(251, 191, 36, 0.1); color:var(--primary)">${item.cat || 'Geral'}</span></td>
+                <td><span class="status-badge status-pending" style="background:rgba(251, 191, 36, 0.1); color:var(--primary)">${(item.cat || 'GERAL').toUpperCase().trim()}</span></td>
                 <td>${formatBRL(item.val)}</td>
                 <td>
                     <div style="display:flex; gap:10px;">
@@ -573,7 +564,7 @@ function renderTableRows(month, type) {
 
         const totalInc = originalList.reduce((sum, item) => sum + Number(item.val), 0);
         document.getElementById('total-income').innerText = formatBRL(totalInc);
-        
+
         originalList.forEach((item, idx) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -758,7 +749,7 @@ function saveTransactionForm() {
             }
 
             if (isChecked) {
-                const catValue = document.getElementById('trans-cat').value || 'Contas';
+                const catValue = (document.getElementById('trans-cat').value || 'CONTAS').toUpperCase().trim();
                 
                 // Lógica Inteligente: Só marca como pago se for o Mês Atual
                 // (Não faz sentido marcar "Janeiro" como pago se estamos em "Fevereiro" criando a conta agora)
@@ -793,7 +784,7 @@ function saveTransactionForm() {
                 db.months[currentMonth][type][idx].desc = desc;
                 db.months[currentMonth][type][idx].val = val;
                 db.months[currentMonth][type][idx].date = document.getElementById('trans-date').value;
-                db.months[currentMonth][type][idx].cat = document.getElementById('trans-cat').value || 'Geral';
+                db.months[currentMonth][type][idx].cat = (document.getElementById('trans-cat').value || 'GERAL').toUpperCase().trim();
                 db.months[currentMonth][type][idx].method = method; 
             }
         } else {
@@ -802,7 +793,7 @@ function saveTransactionForm() {
                 desc: desc,
                 val: val,
                 date: document.getElementById('trans-date').value,
-                cat: document.getElementById('trans-cat').value || 'Geral',
+                cat: (document.getElementById('trans-cat').value || 'GERAL').toUpperCase().trim(),
                 method: method 
             };
             db.months[currentMonth][type].push(newItem);
@@ -1150,7 +1141,7 @@ function renderCards() {
             </div>
             <div style="margin-top:20px;">
                 <div style="font-size:0.8rem; opacity:0.9;">
-                    Fatura de ${currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)}
+                    Fatura de ${currentMonthName === 'marco' ? 'Março' : currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)}
                     <br><span style="font-size:0.7rem; opacity:0.7;">(Fecha dia ${closingDay})</span>
                 </div>
                 <div style="font-size:1.5rem; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${formatBRL(invoiceTotal)}</div>
@@ -1270,10 +1261,13 @@ function renderSectionChart(type) {
     // Agrupa dados por Categoria
     const grouped = {};
     list.forEach(item => {
-        // Filtra receitas se estiver nas variáveis por engano
-        if (item.cat === 'Receita' || item.cat === 'Salário') return;
+        if (!item.cat) return;
+        const catUpper = item.cat.toUpperCase().trim();
         
-        const cat = item.cat || 'Geral';
+        // Filtra receitas se estiver nas variáveis por engano
+        if (catUpper === 'RECEITA' || catUpper === 'SALÁRIO') return;
+        
+        const cat = catUpper || 'GERAL';
         // Usa Math.abs para garantir números positivos
         grouped[cat] = (grouped[cat] || 0) + Math.abs(Number(item.val));
     });
