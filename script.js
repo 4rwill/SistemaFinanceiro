@@ -491,8 +491,11 @@ function renderTableRows(month, type) {
 
         // 2. Aplica o filtro se não for "all"
         if (viewState.filterFixed && viewState.filterFixed !== 'all') {
-            displayList = displayList.filter(item => item.cat === viewState.filterFixed);
+            displayList = displayList.filter(item => item.cat === viewState.filterFixed);    
         }
+
+        const totalFixedFiltered = displayList.reduce((sum, item) => sum + Number(item.val), 0);
+        document.getElementById('total-fixed').innerText = formatBRL(totalFixedFiltered);
 
         // 3. Renderiza a lista filtrada (displayList em vez de originalList)
         displayList.forEach((item, idx) => {
@@ -531,6 +534,9 @@ function renderTableRows(month, type) {
         if (viewState.filter !== 'all') {
             displayList = displayList.filter(item => item.cat === viewState.filter);
         }
+
+        const totalVarFiltered = displayList.reduce((sum, item) => sum + Number(item.val), 0);
+        document.getElementById('total-variable').innerText = formatBRL(totalVarFiltered);
         
         displayList.sort((a, b) => {
             let valA = a[viewState.sortCol];
@@ -564,6 +570,10 @@ function renderTableRows(month, type) {
     else { // Income
         tbody = document.getElementById('tbody-income');
         tbody.innerHTML = '';
+
+        const totalInc = originalList.reduce((sum, item) => sum + Number(item.val), 0);
+        document.getElementById('total-income').innerText = formatBRL(totalInc);
+        
         originalList.forEach((item, idx) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -871,10 +881,6 @@ function updateCalculations() {
     
 
     updateCategoryChart(currentData);
-
-    document.getElementById('total-fixed').innerText = formatBRL(currentFixed);
-    document.getElementById('total-variable').innerText = formatBRL(currentVar);
-    document.getElementById('total-income').innerText = formatBRL(currentInc);
 }
 
 function updateCategoryChart(data) {
