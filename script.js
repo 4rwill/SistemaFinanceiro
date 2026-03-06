@@ -697,7 +697,7 @@ function openTransactionModal(type, id = null) {
         const item = db.months[m][type].find(x => x.id === id);
         if (item) {
             document.getElementById('trans-desc').value = item.desc;
-            document.getElementById('trans-val').value = item.val;
+            document.getElementById('trans-val').value = formatForInput(item.val);
             
             if(type === 'variable') {
                 if(item.date) dateInput.value = item.date;
@@ -737,7 +737,7 @@ function saveTransactionForm() {
     const currentMonth = document.getElementById('month-select').value;
     const type = currentTransType;
     const desc = document.getElementById('trans-desc').value;
-    const val = Number(document.getElementById('trans-val').value);
+    const val = parseCurrency(document.getElementById('trans-val').value);  
     
     const methodInput = document.querySelector('input[name="trans-method"]:checked');
     const method = methodInput ? methodInput.value : 'debit'; 
@@ -975,8 +975,8 @@ function openGoalModal(id = null) {
         if (g) {
             document.getElementById('modal-title').innerText = "Editar Meta";
             document.getElementById('goal-name').value = g.name;
-            document.getElementById('goal-target').value = g.target;
-            document.getElementById('goal-current').value = g.current;
+            document.getElementById('goal-target').value = formatForInput(g.target);
+            document.getElementById('goal-current').value = formatForInput(g.current);
             document.getElementById('goal-date').value = g.date || '';
             if(g.icon) {
                 selectedGoalIcon = g.icon;
@@ -993,8 +993,8 @@ function closeGoalModal() { document.getElementById('goal-modal-overlay').classL
 function selectIcon(el, icon) { selectedGoalIcon = icon; document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('active')); el.classList.add('active'); }
 function saveGoalForm() {
     const name = document.getElementById('goal-name').value;
-    const target = Number(document.getElementById('goal-target').value);
-    const current = Number(document.getElementById('goal-current').value);
+    const target = parseCurrency(document.getElementById('goal-target').value);
+    const current = parseCurrency(document.getElementById('goal-current').value);
     const date = document.getElementById('goal-date').value;
     if (!name || target <= 0) { alert("Preencha corretamente."); return; }
     const newGoal = { id: currentGoalId || Date.now(), name, target, current, date, icon: selectedGoalIcon };
@@ -1051,7 +1051,7 @@ function openCardModal(id = null) {
         const card = db.cards.find(c => c.id === id);
         if (card) {
             document.getElementById('card-name').value = card.name;
-            document.getElementById('card-limit').value = card.limit;
+            document.getElementById('card-limit').value = formatForInput(card.limit);
             document.getElementById('card-closing').value = card.closing;
             let colorBtn = document.querySelector(`.color-opt[style*="${card.color}"]`);
             if (!colorBtn) { colorBtn = document.getElementById('custom-picker-btn'); colorBtn.querySelector('input').value = card.color; }
@@ -1069,7 +1069,7 @@ function selectCardColor(c, el) {
 }
 function saveCardForm() {
     const name = document.getElementById('card-name').value;
-    const limit = Number(document.getElementById('card-limit').value);
+    const limit = parseCurrency(document.getElementById('card-limit').value);
     const closing = document.getElementById('card-closing').value;
     if(!name) return alert("Nome obrigatório");
     const cardData = { name, limit, closing, color: selectedCardColor };
@@ -1333,4 +1333,31 @@ function renderSectionChart(type) {
             cutout: '65%'
         }
     });
+}
+
+// --- MÁSCARAS DE MOEDA ---
+
+// 1. Formata o campo enquanto o usuário digita (Restaura centavos da direita pra esquerda)
+function maskCurrency(input) {
+    let value = input.value.replace(/\D/g, ""); // Remove tudo que não for número
+    if (value === "") {
+        input.value = "";
+        return;
+    }
+    // Converte para centavos e aplica o padrão brasileiro (ex: 1000 vira 10,00)
+    value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    input.value = value;
+}
+
+// 2. Limpa a formatação para salvar no banco de dados (ex: "1.500,00" vira 1500.00)
+function parseCurrency(valString) {
+    if (!valString) return 0;
+    if (typeof valString === 'number') return valString;
+    return Number(valString.replace(/\./g, "").replace(",", "."));
+}
+
+// 3. Formata o número do banco para exibir no input quando for editar (ex: 1500.00 vira "1.500,00")
+function formatForInput(num) {
+    if (num === null || num === undefined || isNaN(num)) return "";
+    return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
