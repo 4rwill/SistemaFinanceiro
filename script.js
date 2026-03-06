@@ -345,13 +345,21 @@ function renderDashboard() {
     let totalInc = 0, totalExp = 0;
     let labels = [], dInc = [], dExp = [];
 
-    MONTHS.forEach(m => {
+    // 1. Descobre qual é o mês atual no mundo real (0 = Jan, 1 = Fev, 2 = Março...)
+    const currentMonthIndex = new Date().getMonth();
+
+    MONTHS.forEach((m, index) => {
         const d = db.months[m];
         const inc = d.income.reduce((a,b) => a + Number(b.val), 0);
         const exp = d.fixed.reduce((a,b) => a + Number(b.val), 0) + d.variable.reduce((a,b) => a + Number(b.val), 0);
         
-        totalInc += inc;
-        totalExp += exp;
+        // 2. A MÁGICA: Soma para os Cards APENAS se o mês for igual ou anterior ao atual
+        if (index <= currentMonthIndex) {
+            totalInc += inc;
+            totalExp += exp;
+        }
+
+        // 3. Os dados do gráfico continuam pegando o ano todo para a linha do tempo
         labels.push(m.substr(0,3).toUpperCase());
         dInc.push(inc);
         dExp.push(exp);
@@ -371,33 +379,36 @@ function renderDashboard() {
         </div>
     `;
 
-    // Gráfico Principal
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    if(window.mainChartInst) window.mainChartInst.destroy();
-    
-    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
-    gradient.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+    // --- GRÁFICO (Mantém a correção de segurança que fizemos antes) ---
+    const chartCanvas = document.getElementById('mainChart');
+    if (chartCanvas) {
+        const ctx = chartCanvas.getContext('2d');
+        if(window.mainChartInst) window.mainChartInst.destroy();
+        
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
+        gradient.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
 
-    window.mainChartInst = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Saldo',
-                data: dInc.map((v, i) => v - dExp[i]),
-                borderColor: '#fbbf24',
-                backgroundColor: gradient,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { grid: { color:'rgba(255,255,255,0.05)' } }, x: { display:false } }
-        }
-    });
+        window.mainChartInst = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Saldo',
+                    data: dInc.map((v, i) => v - dExp[i]),
+                    borderColor: '#fbbf24',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { grid: { color:'rgba(255,255,255,0.05)' } }, x: { display:false } }
+            }
+        });
+    }
 }
 
 function renderMonthly() {
