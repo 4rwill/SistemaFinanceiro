@@ -550,13 +550,13 @@
         // Importa as funções do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // SUA CONFIGURAÇÃO (Cole seus dados aqui novamente se tiverem sumido)
         const firebaseConfig = {
             apiKey: "AIzaSyCCjtCPpxZThs4twrVY-F9Ya-bzjXxfdj8",
-            authDomain: "4rfinancehub.netlify.app",
-            projectId: "sip-finance",   
+            authDomain: "sip-finance.firebaseapp.com",
+            projectId: "sip-finance",
             storageBucket: "sip-finance.firebasestorage.app",
             messagingSenderId: "444867374083",
             appId: "1:444867374083:web:5f59d79c0888d6418bb236"
@@ -574,7 +574,7 @@
             db: dbFirestore,
             auth: auth,
             provider: provider,
-            doc, getDoc, setDoc, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
+            doc, getDoc, setDoc, signInWithPopup, signOut, onAuthStateChanged
         };
         
         console.log("Firebase Carregado! Agora carregando script.js...");
@@ -589,4 +589,3 @@
     
 </body>
 </html>
-

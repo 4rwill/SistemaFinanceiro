@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
 
 // --- FIREBASE SETUP (O NOVO MOTOR) ---
 // Pega as ferramentas que carregamos no HTML
-const { db: firestore, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
+const { db: firestore, auth, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
 
 let currentUser = null; // Guarda quem está logado
 
@@ -40,38 +40,37 @@ MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; })
 
 // --- INICIALIZAÇÃO (LOGIN CHECK) ---
 // Substituímos o window.onload antigo por este que espera o Login
-// --- INICIALIZAÇÃO E LOGIN ---
-function initApp() {
+window.onload = function() {
     const statusText = document.getElementById('login-status');
+    if(statusText) statusText.innerText = "Conectando ao servidor...";
 
-    // 1. O PWA LÊ O RETORNO DO LOGIN AQUI (Isso resolve o bug do iOS PWA)
-    getRedirectResult(auth).then((result) => {
-        if (result) {
-            console.log("Retorno do Google processado com sucesso!");
-        }
-    }).catch((error) => {
-        console.error("Erro no retorno:", error);
-    });
-
-    // 2. Controla a tela baseada no estado do usuário
+    // Ouve se o usuário entrou ou saiu
     onAuthStateChanged(auth, async (user) => {
-        const loginScreen = document.getElementById('login-screen');
+        const loginScreen = document.getElementById('login-screen'); // Pega o elemento
 
         if (user) {
+            // USUÁRIO LOGADO
             currentUser = user;
+            
+            // CORREÇÃO: Só tenta esconder se o elemento existir
             if (loginScreen) loginScreen.style.display = 'none'; 
+            
+            console.log("Logado como:", user.email);
+            
             await loadDataCloud(); 
             setupUI();
         } else {
+            // USUÁRIO DESLOGADO
             currentUser = null;
+            
+            // CORREÇÃO: Só tenta mostrar se o elemento existir
             if (loginScreen) loginScreen.style.display = 'flex'; 
-            if (statusText) statusText.innerText = "";
+            
+            const statusText = document.getElementById('login-status');
+            if(statusText) statusText.innerText = "";
         }
     });
-}
-
-// Inicia o sistema automaticamente assim que o script é carregado
-initApp();
+};
 
 function setupUI() {
     // 1. Detecta Mês Atual
@@ -102,15 +101,10 @@ function setupUI() {
 // --- FUNÇÕES DE AUTH (GOOGLE) ---
 async function loginGoogle() {
     try {
-        const statusText = document.getElementById('login-status');
-        if (statusText) statusText.innerText = "Redirecionando para segurança do app...";
-        
-        // Volta a usar o REDIRECIONAMENTO para respeitar o iOS
-        await signInWithRedirect(auth, provider);
-        
+        document.getElementById('login-status').innerText = "Abrindo popup do Google...";
+        await signInWithPopup(auth, provider);
     } catch (error) {
-        console.error("Erro ao iniciar login:", error);
-        document.getElementById('login-status').innerText = "Erro: Tente novamente.";
+        alert("Erro no login: " + error.message);
     }
 }
 
