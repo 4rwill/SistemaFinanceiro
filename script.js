@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
 
 // --- FIREBASE SETUP (O NOVO MOTOR) ---
 // Pega as ferramentas que carregamos no HTML
-const { db: firestore, auth, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
+const { db: firestore, auth, provider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
 
 let currentUser = null; // Guarda quem está logado
 
@@ -101,8 +101,9 @@ function setupUI() {
 // --- FUNÇÕES DE AUTH (GOOGLE) ---
 async function loginGoogle() {
     try {
-        document.getElementById('login-status').innerText = "Abrindo popup do Google...";
-        await signInWithPopup(auth, provider);
+        document.getElementById('login-status').innerText = "Redirecionando para o Google...";
+        // A mágica acontece aqui: Troca o Popup pelo Redirect
+        await signInWithRedirect(auth, provider);
     } catch (error) {
         alert("Erro no login: " + error.message);
     }

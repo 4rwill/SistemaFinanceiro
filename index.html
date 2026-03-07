@@ -550,7 +550,7 @@
         // Importa as funções do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // SUA CONFIGURAÇÃO (Cole seus dados aqui novamente se tiverem sumido)
         const firebaseConfig = {
@@ -574,7 +574,7 @@
             db: dbFirestore,
             auth: auth,
             provider: provider,
-            doc, getDoc, setDoc, signInWithPopup, signOut, onAuthStateChanged
+            doc, getDoc, setDoc, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged
         };
         
         console.log("Firebase Carregado! Agora carregando script.js...");
