@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
 
 // --- FIREBASE SETUP (O NOVO MOTOR) ---
 // Pega as ferramentas que carregamos no HTML
-const { db: firestore, auth, provider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
+const { db: firestore, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, doc, getDoc, setDoc } = window.SIP_FIREBASE;
 
 let currentUser = null; // Guarda quem está logado
 
@@ -40,21 +40,30 @@ MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; })
 
 // --- INICIALIZAÇÃO (LOGIN CHECK) ---
 // Substituímos o window.onload antigo por este que espera o Login
-window.onload = function() {
+// --- INICIALIZAÇÃO E LOGIN ---
+function initApp() {
     const statusText = document.getElementById('login-status');
-    if(statusText) statusText.innerText = "Conectando ao servidor...";
+    if(statusText) statusText.innerText = "Verificando autenticação...";
 
-    // Ouve se o usuário entrou ou saiu
+    // 1. LÊ A RESPOSTA DO REDIRECIONAMENTO (Isso destrava o iOS)
+    getRedirectResult(auth).then((result) => {
+        if (result) {
+            console.log("Login via redirect concluído com sucesso!");
+            if(statusText) statusText.innerText = "Carregando seu sistema...";
+        }
+    }).catch((error) => {
+        console.error("Erro no redirecionamento:", error);
+        if(statusText) statusText.innerText = "Erro ao voltar do Google: " + error.message;
+    });
+
+    // 2. Ouve o estado da autenticação para liberar a tela
     onAuthStateChanged(auth, async (user) => {
-        const loginScreen = document.getElementById('login-screen'); // Pega o elemento
+        const loginScreen = document.getElementById('login-screen');
 
         if (user) {
             // USUÁRIO LOGADO
             currentUser = user;
-            
-            // CORREÇÃO: Só tenta esconder se o elemento existir
             if (loginScreen) loginScreen.style.display = 'none'; 
-            
             console.log("Logado como:", user.email);
             
             await loadDataCloud(); 
@@ -62,15 +71,14 @@ window.onload = function() {
         } else {
             // USUÁRIO DESLOGADO
             currentUser = null;
-            
-            // CORREÇÃO: Só tenta mostrar se o elemento existir
             if (loginScreen) loginScreen.style.display = 'flex'; 
-            
-            const statusText = document.getElementById('login-status');
             if(statusText) statusText.innerText = "";
         }
     });
-};
+}
+
+// Inicia o sistema automaticamente assim que o script é carregado
+initApp();
 
 function setupUI() {
     // 1. Detecta Mês Atual
