@@ -342,44 +342,59 @@ function formatBRL(val) {
 }
 
 function renderDashboard() {
-    let totalInc = 0, totalExp = 0;
+    let totalInc = 0, totalExpPaid = 0, totalExpCommitted = 0;
     let labels = [], dInc = [], dExp = [];
 
-    // 1. Descobre qual é o mês atual no mundo real (0 = Jan, 1 = Fev, 2 = Março...)
     const currentMonthIndex = new Date().getMonth();
 
     MONTHS.forEach((m, index) => {
         const d = db.months[m];
         const inc = d.income.reduce((a,b) => a + Number(b.val), 0);
-        const exp = d.fixed.reduce((a,b) => a + Number(b.val), 0) + d.variable.reduce((a,b) => a + Number(b.val), 0);
         
-        // 2. A MÁGICA: Soma para os Cards APENAS se o mês for igual ou anterior ao atual
+        const varTotal = d.variable.reduce((a,b) => a + Number(b.val), 0);
+        
+        // Separa os fixos para o Dashboard
+        const fixedPaid = d.fixed.filter(x => x.paid).reduce((a,b) => a + Number(b.val), 0);
+        const fixedTotal = d.fixed.reduce((a,b) => a + Number(b.val), 0);
+        
+        const expPaid = fixedPaid + varTotal;
+        const expCommitted = fixedTotal + varTotal;
+
+        // Soma até o mês atual para os cards superiores
         if (index <= currentMonthIndex) {
             totalInc += inc;
-            totalExp += exp;
+            totalExpPaid += expPaid;
+            totalExpCommitted += expCommitted;
         }
 
-        // 3. Os dados do gráfico continuam pegando o ano todo para a linha do tempo
         labels.push(m.substr(0,3).toUpperCase());
         dInc.push(inc);
-        dExp.push(exp);
+        dExp.push(expPaid); // O gráfico de evolução mostra a realidade (gastos pagos)
     });
 
     document.getElementById('kpi-total-inc').innerText = formatBRL(totalInc);
-    document.getElementById('kpi-total-exp').innerText = formatBRL(totalExp);
+    document.getElementById('kpi-total-exp').innerText = formatBRL(totalExpPaid); 
     
-    const balance = totalInc - totalExp;
-    document.getElementById('kpi-total-balance').innerText = formatBRL(balance);
+    const balanceReal = totalInc - totalExpPaid;
+    const balanceCommitted = totalInc - totalExpCommitted;
     
-    const rate = totalInc > 0 ? (balance / totalInc * 100).toFixed(1) : 0;
+    document.getElementById('kpi-total-balance').innerText = formatBRL(balanceReal);
+    
+    const kpiCommitted = document.getElementById('kpi-committed-balance');
+    if(kpiCommitted) {
+        kpiCommitted.innerText = formatBRL(balanceCommitted);
+        kpiCommitted.style.color = balanceCommitted < 0 ? 'var(--danger)' : 'var(--primary)';
+    }
+    
+    const rate = totalInc > 0 ? (balanceReal / totalInc * 100).toFixed(1) : 0;
     document.getElementById('kpi-rate').innerHTML = `
         ${rate}%
         <div style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted); margin-top: 5px;">
-            ${formatBRL(balance)}
+            ${formatBRL(balanceReal)}
         </div>
     `;
 
-    // --- GRÁFICO (Mantém a correção de segurança que fizemos antes) ---
+    // --- GRÁFICO DE LINHA ---
     const chartCanvas = document.getElementById('mainChart');
     if (chartCanvas) {
         const ctx = chartCanvas.getContext('2d');
@@ -394,7 +409,7 @@ function renderDashboard() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Saldo',
+                    label: 'Saldo Real',
                     data: dInc.map((v, i) => v - dExp[i]),
                     borderColor: '#fbbf24',
                     backgroundColor: gradient,
@@ -851,37 +866,65 @@ function toggleStatus(month, idx) {
 function updateCalculations() {
     const currentMonthName = document.getElementById('month-select').value;
     const currentIndex = MONTHS.indexOf(currentMonthName);
-    let previousBalance = 0;
     
+    let previousBalanceReal = 0;
+    let previousBalanceCommitted = 0;
+    
+    // 1. Calcula os meses anteriores
     for (let i = 0; i < currentIndex; i++) {
         const m = MONTHS[i];
         const d = db.months[m];
+        
         const inc = d.income.reduce((a, b) => a + Number(b.val), 0);
-        const expFixed = d.fixed.reduce((a, b) => a + Number(b.val), 0);
+        
+        // Separa o que foi pago do que é o total projetado
+        const fixedPaid = d.fixed.filter(x => x.paid).reduce((a, b) => a + Number(b.val), 0);
+        const fixedTotal = d.fixed.reduce((a, b) => a + Number(b.val), 0);
+        
         const expVar = d.variable.reduce((a, b) => {
             if (!b.method || b.method === 'debit') return a + Number(b.val);
             return a;
         }, 0);
-        previousBalance += (inc - (expFixed + expVar));
+        
+        previousBalanceReal += (inc - (fixedPaid + expVar));
+        previousBalanceCommitted += (inc - (fixedTotal + expVar));
     }
 
+    // 2. Calcula o mês atual
     const currentData = db.months[currentMonthName];
     const currentInc = currentData.income.reduce((a, b) => a + Number(b.val), 0);
-    const currentFixed = currentData.fixed.reduce((a, b) => a + Number(b.val), 0);
+    
+    // Filtra gastos fixos pagos vs totais
+    const currentFixedPaid = currentData.fixed.filter(x => x.paid).reduce((a, b) => a + Number(b.val), 0);
+    const currentFixedTotal = currentData.fixed.reduce((a, b) => a + Number(b.val), 0);
+    
     const currentVar = currentData.variable.reduce((a, b) => {
         if (!b.method || b.method === 'debit') return a + Number(b.val);
         return a;
     }, 0);
     
-    const currentExp = currentFixed + currentVar;
-    const totalBalance = previousBalance + currentInc - currentExp;
-
-    document.getElementById('m-prev-balance').innerText = formatBRL(previousBalance);
-    document.getElementById('m-balance').innerText = formatBRL(totalBalance);
-    document.getElementById('m-inc').innerText = formatBRL(currentInc);
-    document.getElementById('m-exp').innerText = formatBRL(currentExp);
+    const currentExpPaid = currentFixedPaid + currentVar;
+    const currentExpCommitted = currentFixedTotal + currentVar;
     
+    // 3. Resultados Finais
+    const totalBalanceReal = previousBalanceReal + currentInc - currentExpPaid;
+    const totalBalanceCommitted = previousBalanceCommitted + currentInc - currentExpCommitted;
 
+    // 4. Atualiza a Tela Mensal
+    document.getElementById('m-prev-balance').innerText = formatBRL(previousBalanceReal);
+    document.getElementById('m-balance').innerText = formatBRL(totalBalanceReal);
+    
+    const elCommitted = document.getElementById('m-committed-balance');
+    if(elCommitted) {
+        elCommitted.innerText = formatBRL(totalBalanceCommitted);
+        // Deixa vermelho se o comprometido ficar negativo, sênão fica dourado
+        elCommitted.style.color = totalBalanceCommitted < 0 ? 'var(--danger)' : 'var(--primary)';
+    }
+
+    document.getElementById('m-inc').innerText = formatBRL(currentInc);
+    // A despesa no canto superior direito mostra apenas o que JÁ FOI DEBITADO
+    document.getElementById('m-exp').innerText = formatBRL(currentExpPaid); 
+    
     updateCategoryChart(currentData);
 }
 
