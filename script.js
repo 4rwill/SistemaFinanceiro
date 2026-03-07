@@ -43,36 +43,29 @@ MONTHS.forEach(m => { db.months[m] = { fixed: [], variable: [], income: [] }; })
 // --- INICIALIZAÇÃO E LOGIN ---
 function initApp() {
     const statusText = document.getElementById('login-status');
-    if(statusText) statusText.innerText = "Verificando autenticação...";
 
-    // 1. LÊ A RESPOSTA DO REDIRECIONAMENTO (Isso destrava o iOS)
+    // 1. O PWA LÊ O RETORNO DO LOGIN AQUI (Isso resolve o bug do iOS PWA)
     getRedirectResult(auth).then((result) => {
         if (result) {
-            console.log("Login via redirect concluído com sucesso!");
-            if(statusText) statusText.innerText = "Carregando seu sistema...";
+            console.log("Retorno do Google processado com sucesso!");
         }
     }).catch((error) => {
-        console.error("Erro no redirecionamento:", error);
-        if(statusText) statusText.innerText = "Erro ao voltar do Google: " + error.message;
+        console.error("Erro no retorno:", error);
     });
 
-    // 2. Ouve o estado da autenticação para liberar a tela
+    // 2. Controla a tela baseada no estado do usuário
     onAuthStateChanged(auth, async (user) => {
         const loginScreen = document.getElementById('login-screen');
 
         if (user) {
-            // USUÁRIO LOGADO
             currentUser = user;
             if (loginScreen) loginScreen.style.display = 'none'; 
-            console.log("Logado como:", user.email);
-            
             await loadDataCloud(); 
             setupUI();
         } else {
-            // USUÁRIO DESLOGADO
             currentUser = null;
             if (loginScreen) loginScreen.style.display = 'flex'; 
-            if(statusText) statusText.innerText = "";
+            if (statusText) statusText.innerText = "";
         }
     });
 }
@@ -109,11 +102,15 @@ function setupUI() {
 // --- FUNÇÕES DE AUTH (GOOGLE) ---
 async function loginGoogle() {
     try {
-        document.getElementById('login-status').innerText = "Redirecionando para o Google...";
-        // A mágica acontece aqui: Troca o Popup pelo Redirect
+        const statusText = document.getElementById('login-status');
+        if (statusText) statusText.innerText = "Redirecionando para segurança do app...";
+        
+        // Volta a usar o REDIRECIONAMENTO para respeitar o iOS
         await signInWithRedirect(auth, provider);
+        
     } catch (error) {
-        alert("Erro no login: " + error.message);
+        console.error("Erro ao iniciar login:", error);
+        document.getElementById('login-status').innerText = "Erro: Tente novamente.";
     }
 }
 
