@@ -1419,3 +1419,199 @@ function formatForInput(num) {
     if (num === null || num === undefined || isNaN(num)) return "";
     return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+// --- GERAÇÃO DE RELATÓRIO PDF CORPORATIVO (DESIGN PREMIUM) ---
+function generatePDF() {
+    const btn = document.getElementById('btn-export-pdf');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Relatório...';
+    btn.disabled = true;
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        const currentMonth = document.getElementById('month-select').value;
+        const mesCapitalizado = currentMonth === 'marco' ? 'Março' : currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+        const data = db.months[currentMonth];
+
+        // --- CÁLCULOS DO RESUMO (Com Histórico e Cartões) ---
+        const currentIndex = MONTHS.indexOf(currentMonth);
+        let previousBalanceReal = 0;
+        let previousBalanceCommitted = 0;
+        
+        for (let i = 0; i < currentIndex; i++) {
+            const m = MONTHS[i];
+            const d = db.months[m];
+            const pastInc = d.income.reduce((a, b) => a + Number(b.val), 0);
+            const pastFixedPaid = d.fixed.filter(x => x.paid).reduce((a, b) => a + Number(b.val), 0);
+            const pastFixedTotal = d.fixed.reduce((a, b) => a + Number(b.val), 0);
+            const pastVar = d.variable.reduce((a, b) => (!b.method || b.method === 'debit') ? a + Number(b.val) : a, 0);
+            
+            previousBalanceReal += (pastInc - (pastFixedPaid + pastVar));
+            previousBalanceCommitted += (pastInc - (pastFixedTotal + pastVar));
+        }
+
+        const currentInc = data.income.reduce((a, b) => a + Number(b.val), 0);
+        const currentFixedPaid = data.fixed.filter(x => x.paid).reduce((a, b) => a + Number(b.val), 0);
+        const currentFixedTotal = data.fixed.reduce((a, b) => a + Number(b.val), 0);
+        const currentVar = data.variable.reduce((a, b) => (!b.method || b.method === 'debit') ? a + Number(b.val) : a, 0);
+        
+        const currentExpPaid = currentFixedPaid + currentVar;
+        const currentExpCommitted = currentFixedTotal + currentVar;
+        
+        const balanceReal = previousBalanceReal + currentInc - currentExpPaid;
+
+        // ==========================================
+        // 🎨 INÍCIO DO DESIGN DO PDF
+        // ==========================================
+
+        // --- 1. CABEÇALHO ESCURO PREMIUM ---
+        doc.setFillColor(15, 23, 42); // Fundo Slate 900 (Cor do App)
+        doc.rect(0, 0, 210, 40, 'F'); // Barra superior de ponta a ponta
+
+        // Nome do App (Dourado)
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(251, 191, 36); 
+        doc.text("S.I.P Finance", 14, 20);
+
+        // Subtítulo e Datas (Branco)
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Relatório de Gestão - ${mesCapitalizado}`, 14, 28);
+        doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 34);
+
+        // --- 2. MINI-DASHBOARD (GRID DE RESUMO) ---
+        // Transformamos o resumo de texto em uma tabela limpa e alinhada
+        doc.autoTable({
+            startY: 50,
+            head: [['Saldo Anterior', 'Receitas', 'Despesas Pagas', 'Saldo em Caixa']],
+            body: [[
+                formatBRL(previousBalanceReal),
+                formatBRL(currentInc),
+                formatBRL(currentExpPaid),
+                formatBRL(balanceReal)
+            ]],
+            theme: 'grid',
+            headStyles: { 
+                fillColor: [241, 245, 249], // Fundo cinza bem clarinho
+                textColor: [100, 116, 139], // Texto cinza chumbo
+                halign: 'center', 
+                fontSize: 10,
+                lineColor: [226, 232, 240], // Borda suave
+                lineWidth: 0.1
+            },
+            bodyStyles: { 
+                halign: 'center', 
+                fontSize: 13, 
+                fontStyle: 'bold', 
+                textColor: [15, 23, 42],
+                lineColor: [226, 232, 240],
+                lineWidth: 0.1
+            },
+            columnStyles: {
+                3: { textColor: balanceReal >= 0 ? [34, 197, 94] : [239, 68, 68] } // Colore o saldo final de verde ou vermelho
+            },
+            margin: { left: 14, right: 14 }
+        });
+
+        let currentY = doc.lastAutoTable.finalY + 6;
+
+        // Aviso do saldo comprometido mais discreto embaixo do painel
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`* Saldo Comprometido (Considerando contas pendentes): ${formatBRL(previousBalanceCommitted + currentInc - currentExpCommitted)}`, 14, currentY);
+        
+        currentY += 15;
+
+        // --- 3. DESIGN DAS TABELAS DE DADOS ---
+        const tableOptions = {
+            theme: 'plain', // Tira o estilo pesado padrão
+            styles: { 
+                fontSize: 10, 
+                cellPadding: 4, 
+                lineColor: [226, 232, 240], 
+                lineWidth: { bottom: 0.5 } // Apenas uma linha fina separando as linhas
+            },
+            margin: { left: 14, right: 14 }
+        };
+
+        // TABELA 1: RECEITAS
+        if (data.income.length > 0) {
+            doc.autoTable({
+                ...tableOptions,
+                startY: currentY,
+                head: [['RECEITAS / ENTRADAS', 'Valor']],
+                body: data.income.map(item => [item.desc, formatBRL(item.val)]),
+                headStyles: { fillColor: [255, 255, 255], textColor: [52, 211, 153], fontStyle: 'bold', fontSize: 11 }
+            });
+            currentY = doc.lastAutoTable.finalY + 10;
+        }
+
+        // TABELA 2: DESPESAS FIXAS
+        if (data.fixed.length > 0) {
+            doc.autoTable({
+                ...tableOptions,
+                startY: currentY,
+                head: [['DESPESAS FIXAS', 'Categoria', 'Status', 'Valor']],
+                body: data.fixed.map(item => [
+                    item.desc, 
+                    item.cat || 'GERAL', 
+                    item.paid ? 'Pago' : 'Pendente', 
+                    formatBRL(item.val)
+                ]),
+                headStyles: { fillColor: [255, 255, 255], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 11 },
+                columnStyles: { 2: { fontStyle: 'italic' } }
+            });
+            currentY = doc.lastAutoTable.finalY + 10;
+        }
+
+        // TABELA 3: GASTOS VARIÁVEIS
+        if (data.variable.length > 0) {
+            doc.autoTable({
+                ...tableOptions,
+                startY: currentY,
+                head: [['GASTOS VARIÁVEIS', 'Data', 'Categoria', 'Valor']],
+                body: data.variable.map(item => [
+                    item.desc,
+                    item.date ? new Date(item.date).toLocaleDateString('pt-BR', {timeZone:'UTC'}) : '-',
+                    item.cat || 'GERAL',
+                    formatBRL(item.val)
+                ]),
+                headStyles: { fillColor: [255, 255, 255], textColor: [251, 191, 36], fontStyle: 'bold', fontSize: 11 }
+            });
+        }
+
+        // --- RODAPÉ ---
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.setTextColor(150);
+            doc.text(`Página ${i} de ${pageCount} • Gerado por S.I.P Finance`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        }
+
+        // Salva
+        doc.save(`SIP_Finance_${mesCapitalizado}.pdf`);
+
+        // Devolve o botão ao normal
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        const t = document.getElementById('toast');
+        if(t) {
+            t.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Relatório Gerado!';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+    } catch (error) {
+        console.error("Erro ao gerar PDF:", error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert("Ocorreu um erro ao montar o relatório.");
+    }
+}

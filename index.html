@@ -8,6 +8,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -123,22 +125,31 @@
         <header>
             <h2 id="page-title">VISÃO GERAL</h2>
             
-            <div id="month-control" class="select-wrapper" style="display: none;">
-                    <select id="month-select" onchange="handleMonthChange()">
-                    <option value="janeiro">JANEIRO</option>
-                    <option value="fevereiro">FEVEREIRO</option>
-                    <option value="marco">MARÇO</option>
-                    <option value="abril">ABRIL</option>
-                    <option value="maio">MAIO</option>
-                    <option value="junho">JUNHO</option>
-                    <option value="julho">JULHO</option>
-                    <option value="agosto">AGOSTO</option>
-                    <option value="setembro">SETEMBRO</option>
-                    <option value="outubro">OUTUBRO</option>
-                    <option value="novembro">NOVEMBRO</option>
-                    <option value="dezembro">DEZEMBRO</option>
-                </select>
-            </div>
+            <div id="month-control" style="display: none;">
+                <div class="header-actions-container">
+                    <div class="select-wrapper">
+                        <select id="month-select" onchange="handleMonthChange()">
+                            <option value="janeiro">JANEIRO</option>
+                            <option value="fevereiro">FEVEREIRO</option>
+                            <option value="marco">MARÇO</option>
+                            <option value="abril">ABRIL</option>
+                            <option value="maio">MAIO</option>
+                            <option value="junho">JUNHO</option>
+                            <option value="julho">JULHO</option>
+                            <option value="agosto">AGOSTO</option>
+                            <option value="setembro">SETEMBRO</option>
+                            <option value="outubro">OUTUBRO</option>
+                            <option value="novembro">NOVEMBRO</option>
+                            <option value="dezembro">DEZEMBRO</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-export-pdf" onclick="generatePDF()" class="btn-export-pdf">
+                        <i class="fas fa-file-pdf" style="font-size: 1.1rem;"></i> 
+                        <span class="pdf-btn-text">Relatório PDF</span>
+                    </button>
+                </div>
+            </div>  
         </header>
 
         <section id="view-dashboard" class="view-section active">
