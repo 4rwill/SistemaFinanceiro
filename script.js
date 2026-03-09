@@ -288,6 +288,118 @@ function exportData() {
     document.body.removeChild(a);
 }
 
+// --- EXPORTAR PARA EXCEL PROFISSIONAL (.XLSX) ---
+// --- EXPORTAR PARA EXCEL PREMIUM (EXCELJS) ---
+async function exportToExcel() {
+    // 1. Verifica se existem dados
+    if (!db || !db.months) return alert("Sem dados para exportar.");
+
+    // 2. Feedback visual no botão
+    const t = document.getElementById('toast');
+    if(t) {
+        t.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Montando Planilha...';
+        t.classList.add('show');
+    }
+
+    try {
+        // 3. Cria a Planilha e a Aba
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Relatório S.I.P');
+
+        // 4. Configura as Colunas e as Larguras
+        worksheet.columns = [
+            { header: 'Mês', key: 'mes', width: 15 },
+            { header: 'Tipo', key: 'tipo', width: 18 },
+            { header: 'Data', key: 'data', width: 15 },
+            { header: 'Descrição', key: 'desc', width: 40 },
+            { header: 'Categoria', key: 'cat', width: 25 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Valor', key: 'valor', width: 20 }
+        ];
+
+        // 5. Estiliza o Cabeçalho (Fundo Escuro e Letra Branca Negrito)
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF0F172A' } // Cor do tema (Slate 900)
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25; // Deixa o cabeçalho mais altinho
+
+        // 6. Preenche os Dados
+        MONTHS.forEach(m => {
+            const monthName = m.toUpperCase();
+            const data = db.months[m];
+
+            data.income.forEach(item => {
+                worksheet.addRow({ mes: monthName, tipo: 'Receita', data: '-', desc: item.desc, cat: '-', status: 'Pago', valor: Number(item.val) });
+            });
+            data.fixed.forEach(item => {
+                worksheet.addRow({ mes: monthName, tipo: 'Despesa Fixa', data: '-', desc: item.desc, cat: item.cat || 'GERAL', status: item.paid ? 'Pago' : 'Pendente', valor: Number(item.val) });
+            });
+            data.variable.forEach(item => {
+                const date = item.date ? item.date.split('-').reverse().join('/') : '-';
+                worksheet.addRow({ mes: monthName, tipo: 'Gasto Variável', data: date, desc: item.desc, cat: item.cat || 'GERAL', status: 'Pago', valor: Number(item.val) });
+            });
+        });
+
+        // 7. Formatações Especiais nas Células
+        // Formata a coluna de Valor para Moeda Oficial do Excel
+        worksheet.getColumn('valor').numFmt = '"R$ "#,##0.00';
+
+        // Passa linha por linha alinhando textos e colocando bordas finas
+        worksheet.eachRow((row, rowNumber) => {
+            row.eachCell((cell) => {
+                // Alinhamento
+                if (rowNumber > 1) cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                
+                // Bordas
+                cell.border = {
+                    top: {style:'thin', color: {argb:'FFDDDDDD'}},
+                    left: {style:'thin', color: {argb:'FFDDDDDD'}},
+                    bottom: {style:'thin', color: {argb:'FFDDDDDD'}},
+                    right: {style:'thin', color: {argb:'FFDDDDDD'}}
+                };
+            });
+        });
+
+        // 8. Adiciona a setinha de "Filtro" no cabeçalho inteiro
+        worksheet.autoFilter = 'A1:G1';
+
+        // 9. Gera o Arquivo Mágico e faz o Download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.href = url;
+        a.download = 'SIP_Finance_Premium.xlsx';
+        a.click();
+        URL.revokeObjectURL(url); // Limpa a memória
+
+        // 10. Aviso de Sucesso
+        if(t) {
+            t.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Excel Premium Gerado!';
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+    } catch (error) {
+        console.error("Erro ao gerar Excel:", error);
+        if(t) {
+            t.innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--danger);"></i> Erro ao gerar planilha';
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+    }
+}
+
+// Para garantir que o HTML ache a função caso esteja usando MVC
+window.exportToExcel = exportToExcel;
+
+// Para garantir que o HTML ache a função caso esteja em MVC
+window.exportToExcel = exportToExcel;
+
 function triggerImport() { document.getElementById('import-file').click(); }
 
 function handleImport(input) {
