@@ -51,11 +51,26 @@ window.onload = function() {
         if (user) {
             // USUÁRIO LOGADO
             currentUser = user;
-            
-            // CORREÇÃO: Só tenta esconder se o elemento existir
             if (loginScreen) loginScreen.style.display = 'none'; 
-            
             console.log("Logado como:", user.email);
+
+            // --- NOVO: PREENCHE O EMAIL NA TELA ---
+            const sideInfo = document.getElementById('sidebar-user-info');
+            if(sideInfo) {
+                sideInfo.style.display = 'flex'; // Usando flex para alinhar lado a lado
+                document.getElementById('sidebar-user-name').innerText = user.displayName || 'Usuário';
+                document.getElementById('sidebar-user-email').innerText = user.email;
+                document.getElementById('sidebar-user-avatar').src = user.photoURL || 'https://via.placeholder.com/150';
+            }
+
+            const mobInfo = document.getElementById('mobile-user-info');
+            if(mobInfo) {
+                mobInfo.style.display = 'flex';
+                document.getElementById('mobile-user-name').innerText = user.displayName || 'Usuário';
+                document.getElementById('mobile-user-email').innerText = user.email;
+                document.getElementById('mobile-user-avatar').src = user.photoURL || 'https://via.placeholder.com/150';
+            }
+
             
             await loadDataCloud(); 
             setupUI();
