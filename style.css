@@ -1176,3 +1176,47 @@ td:first-child { white-space: nowrap; width: 1%; }
     outline: none;
 }
 
+/* --- ALINHAMENTO DO HEADER (SELETOR + BOTÃO PDF) --- */
+.header-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-export-pdf {
+    padding: 0 20px; 
+    height: 40px; /* Mesma altura aproximada do seletor */
+    border-radius: 8px; 
+    background: linear-gradient(135deg, var(--primary), #d97706); 
+    color: #000; 
+    font-family: var(--font-main); 
+    font-weight: 700; 
+    font-size: 0.9rem; 
+    border: none; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); 
+    transition: all 0.2s;
+}
+
+.btn-export-pdf:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-export-pdf:active { transform: scale(0.95); }
+
+/* --- AJUSTES DO BOTÃO NO CELULAR --- */
+@media (max-width: 768px) {
+    .header-actions-container {
+        gap: 10px;
+    }
+    
+    .btn-export-pdf {
+        padding: 0 12px;
+        height: 35px; /* Alinha perfeitamente com a altura do seletor no mobile */
+    }
+    
+    .pdf-btn-text {
+        display: none; /* Esconde a palavra "Relatório PDF" para economizar espaço */
+    }
+}
