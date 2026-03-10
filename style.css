@@ -1220,3 +1220,33 @@ td:first-child { white-space: nowrap; width: 1%; }
         display: none; /* Esconde a palavra "Relatório PDF" para economizar espaço */
     }
 }
+
+/* --- ESTILOS DA BUSCA GLOBAL --- */
+.search-result-item {
+    background: var(--bg-card);
+    border: var(--border);
+    border-radius: 8px;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.search-result-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(5px);
+}
+
+.search-tag {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Scrollbar invisível e bonita para o modal de busca */
+#search-results-container::-webkit-scrollbar { width: 6px; }
+#search-results-container::-webkit-scrollbar-track { background: transparent; }
+#search-results-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }

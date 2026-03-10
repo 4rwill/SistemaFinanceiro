@@ -1615,3 +1615,136 @@ function generatePDF() {
         alert("Ocorreu um erro ao montar o relatório.");
     }
 }
+
+// ==========================================
+// BUSCA GLOBAL (LUPA)
+// ==========================================
+
+function openSearchModal() {
+    document.getElementById('search-modal-overlay').classList.add('open');
+    document.getElementById('global-search-input').value = '';
+    
+    // Reseta o estado visual
+    document.getElementById('search-results-container').innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.95rem;">
+            <i class="fas fa-keyboard" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5; display: block;"></i>
+            Digite algo para pesquisar em todos os meses.
+        </div>
+    `;
+    
+    // Foca automaticamente no campo de texto para o usuário já sair digitando
+    setTimeout(() => document.getElementById('global-search-input').focus(), 100);
+}
+
+function closeSearchModal() {
+    document.getElementById('search-modal-overlay').classList.remove('open');
+}
+
+function performGlobalSearch() {
+    const rawQuery = document.getElementById('global-search-input').value.toLowerCase().trim();
+    const container = document.getElementById('search-results-container');
+    
+    // Só pesquisa se tiver pelo menos 2 letras
+    if (rawQuery.length < 2) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.9rem;">Digite pelo menos 2 letras...</div>';
+        return;
+    }
+
+    // --- A MÁGICA DOS ACENTOS ---
+    // Função interna para remover acentos de qualquer texto
+    const removeAcentos = (str) => {
+        return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, "") : "";
+    };
+
+    // Remove os acentos do que o utilizador digitou
+    const query = removeAcentos(rawQuery);
+
+    let results = [];
+
+    // Vasculha todos os meses do banco
+    MONTHS.forEach(m => {
+        const data = db.months[m];
+        const monthName = m.charAt(0).toUpperCase() + m.slice(1);
+
+        // Procura nas Receitas
+        data.income.forEach(item => {
+            const desc = removeAcentos(item.desc.toLowerCase());
+            if (desc.includes(query)) {
+                results.push({ month: monthName, type: 'Receita', desc: item.desc, cat: null, val: Number(item.val), color: 'var(--success)', isExpense: false });
+            }
+        });
+
+        // Procura nas Fixas
+        data.fixed.forEach(item => {
+            const desc = removeAcentos(item.desc.toLowerCase());
+            const cat = removeAcentos((item.cat || '').toLowerCase());
+            if (desc.includes(query) || cat.includes(query)) {
+                results.push({ month: monthName, type: 'Fixa', desc: item.desc, cat: item.cat, val: Number(item.val), color: 'var(--danger)', isExpense: true });
+            }
+        });
+
+        // Procura nas Variáveis
+        data.variable.forEach(item => {
+            const desc = removeAcentos(item.desc.toLowerCase());
+            const cat = removeAcentos((item.cat || '').toLowerCase());
+            if (desc.includes(query) || cat.includes(query)) {
+                const dateStr = item.date ? item.date.split('-').reverse().join('/') : '';
+                results.push({ month: monthName, type: 'Variável', desc: item.desc, cat: item.cat, val: Number(item.val), color: 'var(--danger)', date: dateStr, isExpense: true });
+            }
+        });
+    });
+
+    // Se não achar nada
+    if (results.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.9rem;">
+                <i class="fas fa-ghost" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5; display: block;"></i>
+                Nenhum lançamento encontrado.
+            </div>`;
+        return;
+    }
+
+    // Desenha os resultados na tela
+    container.innerHTML = '';
+    let totalBusca = 0;
+
+    results.forEach(res => {
+        totalBusca += res.isExpense ? -Math.abs(res.val) : Math.abs(res.val);
+
+        const catHtml = res.cat ? `<span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 5px;"><i class="fas fa-tag"></i> ${res.cat}</span>` : '';
+        const dateHtml = res.date ? `<span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 5px;"><i class="fas fa-calendar-alt"></i> ${res.date}</span>` : '';
+        const sign = res.isExpense ? '-' : '+';
+        
+        const html = `
+            <div class="search-result-item">
+                <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main); margin-bottom: 4px;">
+                        ${res.desc}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                        <span class="search-tag" style="background: rgba(255,255,255,0.05); color: var(--text-main);">${res.month}</span>
+                        <span class="search-tag" style="color: ${res.color}; border: 1px solid ${res.color};">${res.type}</span>
+                        ${catHtml}
+                        ${dateHtml}
+                    </div>
+                </div>
+                <div style="font-weight: bold; color: ${res.color}; font-size: 1.05rem; margin-left: 10px; white-space: nowrap;">
+                    ${sign} ${formatBRL(res.val)}
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    });
+
+    const colorTotal = totalBusca >= 0 ? 'var(--success)' : 'var(--danger)';
+    container.insertAdjacentHTML('beforeend', `
+        <div style="margin-top: 10px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: right; font-size: 0.9rem; color: var(--text-muted);">
+            Saldo desta pesquisa: <span style="color: ${colorTotal}; font-size: 1.1rem; font-weight: bold; margin-left: 5px;">${formatBRL(totalBusca)}</span>
+        </div>
+    `);
+}
+
+// Expõe as funções para o HTML (Caso esteja usando MVC ou módulos)
+window.openSearchModal = openSearchModal;
+window.closeSearchModal = closeSearchModal;
+window.performGlobalSearch = performGlobalSearch;
