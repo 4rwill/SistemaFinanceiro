@@ -335,10 +335,13 @@ function applySort(col) {
 }
 
 function updateSortIcons(activeCol, isAsc) {
+    // 1. Reseta os ícones do cabeçalho da tabela no PC
     document.querySelectorAll('.sort-icon').forEach(icon => {
         icon.className = 'fas fa-sort sort-icon';
         icon.style.opacity = '0.3';
     });
+    
+    // 2. Atualiza o ícone do cabeçalho da tabela no PC
     const colMap = { 'date': 0, 'desc': 1, 'cat': 2, 'val': 3 };
     const ths = document.querySelectorAll('#table-variable th');
     if(ths[colMap[activeCol]]) {
@@ -348,6 +351,15 @@ function updateSortIcons(activeCol, isAsc) {
             icon.style.opacity = '1';
             icon.style.color = 'var(--primary)';
         }
+    }
+
+    // --- NOVO: 3. Atualiza o ícone do botão Mobile que acabamos de criar ---
+    const mobileIcon = document.getElementById('mobile-sort-icon');
+    if (mobileIcon && activeCol === 'date') {
+        // Muda de seta para baixo (mais antigos primeiro) para seta para cima (mais recentes primeiro)
+        mobileIcon.className = isAsc ? 'fas fa-sort-amount-down' : 'fas fa-sort-amount-up';
+        mobileIcon.style.color = 'var(--primary)';
+        mobileIcon.parentElement.style.borderColor = 'var(--primary)';
     }
 }
 
@@ -534,7 +546,7 @@ function renderTableRows(month, type) {
             // ... (MANTENHA O CONTEÚDO ORIGINAL DO SEU HTML AQUI DENTRO) ...
             // Vou colocar o código padrão aqui para facilitar, mas use o seu se tiver mudado algo:
             const tr = document.createElement('tr');
-            
+            tr.id = `row-${item.id}`;
             // Precisamos achar o índice original para o botão de excluir funcionar certo
             const realIndex = originalList.indexOf(item); 
 
@@ -584,6 +596,7 @@ function renderTableRows(month, type) {
         displayList.forEach((item) => {
             const dateDisplay = item.date ? new Date(item.date).toLocaleDateString('pt-BR', {timeZone:'UTC'}) : '-';
             const tr = document.createElement('tr');
+            tr.id = `row-${item.id}`;
             tr.innerHTML = `
                 <td>${dateDisplay}</td>
                 <td>${item.desc}</td>
@@ -608,6 +621,7 @@ function renderTableRows(month, type) {
 
         originalList.forEach((item, idx) => {
             const tr = document.createElement('tr');
+            tr.id = `row-${item.id}`;
             tr.innerHTML = `
                 <td>${item.desc}</td>
                 <td style="color:var(--success)">${formatBRL(item.val)}</td>
@@ -774,8 +788,9 @@ function saveTransactionForm() {
 
     if(!desc || val <= 0) { alert('Preencha descrição e valor.'); return; }
 
+    let targetHighlightId = currentTransId; // <-- NOVO: Guarda o ID para o scroll
+
     if (type === 'fixed') {
-        // Captura se a caixinha "Já foi pago?" está marcada
         const isPaidInput = document.getElementById('trans-paid').checked;
 
         MONTHS.forEach(m => {
@@ -791,29 +806,21 @@ function saveTransactionForm() {
 
             if (isChecked) {
                 const catValue = (document.getElementById('trans-cat').value || 'CONTAS').toUpperCase().trim();
-                
-                // Lógica Inteligente: Só marca como pago se for o Mês Atual
-                // (Não faz sentido marcar "Janeiro" como pago se estamos em "Fevereiro" criando a conta agora)
                 const statusPago = (m === currentMonth) ? isPaidInput : false;
 
                 if (idx > -1) {
-                    // EDITANDO
                     list[idx].desc = desc;
                     list[idx].val = val;
                     list[idx].cat = catValue;
-                    
-                    // Se for o mês atual, atualiza o status de pagamento
-                    if (m === currentMonth) list[idx].paid = isPaidInput;
-                    
+                    if (m === currentMonth) {
+                        list[idx].paid = isPaidInput;
+                        targetHighlightId = list[idx].id; // Atualiza ID se editou no mês atual
+                    }
                 } else {
-                    // CRIANDO NOVA (AQUI ESTAVA O ERRO)
-                    list.push({ 
-                        id: Date.now() + Math.random(), 
-                        desc: desc, 
-                        val: val, 
-                        cat: catValue, 
-                        paid: statusPago // <--- CORREÇÃO: Antes estava 'false' fixo
-                    });
+                    const newId = Date.now() + Math.random();
+                    if (m === currentMonth) targetHighlightId = newId; // Salva o ID se for no mês atual
+                    
+                    list.push({ id: newId, desc: desc, val: val, cat: catValue, paid: statusPago });
                 }
             }
         });
@@ -829,8 +836,9 @@ function saveTransactionForm() {
                 db.months[currentMonth][type][idx].method = method; 
             }
         } else {
+            targetHighlightId = Date.now() + Math.random();
             const newItem = {
-                id: Date.now() + Math.random(),
+                id: targetHighlightId,
                 desc: desc,
                 val: val,
                 date: document.getElementById('trans-date').value,
@@ -840,7 +848,6 @@ function saveTransactionForm() {
             db.months[currentMonth][type].push(newItem);
         }
     }
-    // LÓGICA PARA ENTRADAS (Mantida!)
     else if (type === 'income') {
         if (currentTransId) {
             const idx = db.months[currentMonth].income.findIndex(x => x.id === currentTransId);
@@ -849,8 +856,9 @@ function saveTransactionForm() {
                 db.months[currentMonth].income[idx].val = val;
             }
         } else {
+            targetHighlightId = Date.now() + Math.random();
             db.months[currentMonth].income.push({
-                id: Date.now() + Math.random(),
+                id: targetHighlightId,
                 desc: desc,
                 val: val
             });
@@ -861,6 +869,39 @@ function saveTransactionForm() {
     if(document.getElementById('view-cards').classList.contains('active')) renderCards();
     renderMonthly();
     closeTransactionModal();
+
+    // --- NOVO: Chama o scroll depois de fechar o modal ---
+    if (targetHighlightId) {
+        setTimeout(() => {
+            scrollToAndHighlight(targetHighlightId, type);
+        }, 300); // 300ms dá tempo do modal sumir e o HTML atualizar na tela
+    }
+}
+
+// --- FUNÇÃO AUXILIAR DE SCROLL E ANIMAÇÃO ---
+function scrollToAndHighlight(id, type) {
+    // 1. Garante que a gaveta onde o item está, fique aberta
+    const bodySection = document.getElementById(`body-${type}`);
+    const iconBtn = document.getElementById(`icon-${type}`);
+    
+    if (bodySection && !bodySection.classList.contains('open')) {
+        toggleSectionBody(type, iconBtn.parentElement);
+    }
+
+    // 2. Procura a linha da transação e faz a mágica
+    setTimeout(() => {
+        const row = document.getElementById(`row-${id}`);
+        if (row) {
+            // Rola a tela até o item suavemente, deixando ele bem no meio da visão
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Aplica a animação de piscar verde
+            row.classList.add('highlight-new');
+            
+            // Remove a classe depois que a animação termina para não ficar sujo
+            setTimeout(() => row.classList.remove('highlight-new'), 2100);
+        }
+    }, 350); // Espera a gaveta abrir (caso estivesse fechada) antes de descer
 }
 
 function delRow(month, type, idx) {
