@@ -1283,3 +1283,29 @@ td:first-child { white-space: nowrap; width: 1%; }
     border-color: var(--primary);
     color: var(--primary);
 }
+
+/* --- LEGENDA CUSTOMIZADA DO GRÁFICO --- */
+.custom-legend-item {
+    display: flex; 
+    align-items: center; 
+    gap: 6px;
+    font-size: 0.85rem; 
+    color: var(--text-muted);
+    cursor: pointer; 
+    user-select: none; 
+    transition: 0.2s;
+}
+
+.custom-legend-item span {
+    width: 12px; 
+    height: 12px; 
+    border-radius: 3px; 
+    display: inline-block;
+}
+
+.custom-legend-item:hover { color: #fff; }
+
+.custom-legend-item.hidden {
+    text-decoration: line-through; 
+    opacity: 0.4;
+}

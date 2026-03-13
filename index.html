@@ -184,8 +184,20 @@
                 </div>
             </div>
 
-            <div class="panel" style="padding: 24px; height: 400px; position: relative;">
-                <canvas id="mainChart"></canvas>
+            <div class="panel" style="padding: 24px; position: relative;">
+                
+                <div id="custom-legend" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;">
+                    <div class="custom-legend-item" onclick="toggleDataset(0)"><span style="background: #fbbf24; border-radius: 50%;"></span> Saldo</div>
+                    <div class="custom-legend-item" onclick="toggleDataset(1)"><span style="background: rgba(52, 211, 153, 0.8);"></span> Receitas</div>
+                    <div class="custom-legend-item" onclick="toggleDataset(2)"><span style="background: rgba(248, 113, 113, 0.8);"></span> Despesas</div>
+                </div>
+
+                <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
+                    <div style="min-width: 700px; height: 320px;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
             </div>
         </section>
 

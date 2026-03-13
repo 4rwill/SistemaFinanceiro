@@ -421,33 +421,77 @@ function renderDashboard() {
         </div>
     `;
 
-    // --- GRÁFICO DE LINHA ---
+    // --- GRÁFICO MISTO (CASHFLOW + SALDO) ---
     const chartCanvas = document.getElementById('mainChart');
     if (chartCanvas) {
         const ctx = chartCanvas.getContext('2d');
         if(window.mainChartInst) window.mainChartInst.destroy();
-        
-        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
-        gradient.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
 
         window.mainChartInst = new Chart(ctx, {
-            type: 'line',
+            type: 'bar', // O tipo base passa a ser barra
             data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Saldo Real',
-                    data: dInc.map((v, i) => v - dExp[i]),
-                    borderColor: '#fbbf24',
-                    backgroundColor: gradient,
-                    fill: true,
-                    tension: 0.4
-                }]
+                labels: labels, // Os meses (JAN, FEV, MAR...)
+                datasets: [
+                    {
+                        type: 'line', // A linha dourada do saldo flutuando por cima
+                        label: 'Saldo do Mês',
+                        data: dInc.map((v, i) => v - dExp[i]),
+                        borderColor: '#fbbf24', // Dourado do app
+                        backgroundColor: '#fbbf24',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointBackgroundColor: '#0f172a',
+                        order: 0 // Garante que a linha fique na frente das barras
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Receitas',
+                        data: dInc,
+                        backgroundColor: 'rgba(52, 211, 153, 0.8)', // Verde sucesso
+                        borderRadius: 4,
+                        order: 1
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Despesas',
+                        data: dExp,
+                        backgroundColor: 'rgba(248, 113, 113, 0.8)', // Vermelho perigo
+                        borderRadius: 4,
+                        order: 2
+                    }
+                ]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { grid: { color:'rgba(255,255,255,0.05)' } }, x: { display:false } }
+                responsive: true, 
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index', // Ao passar o mouse, mostra os 3 valores juntos
+                    intersect: false,
+                },
+                plugins: { 
+                    legend: { 
+                        display: false, 
+                        position: 'top',
+                        labels: { color: '#94a3b8', usePointStyle: true, boxWidth: 8 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${formatBRL(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: { 
+                    y: { 
+                        grid: { color:'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94a3b8' }
+                    }, 
+                    x: { 
+                        grid: { display:false },
+                        ticks: { color: '#94a3b8' }
+                    } 
+                }
             }
         });
     }
@@ -1789,3 +1833,21 @@ function performGlobalSearch() {
 window.openSearchModal = openSearchModal;
 window.closeSearchModal = closeSearchModal;
 window.performGlobalSearch = performGlobalSearch;
+
+// --- CONTROLE DA LEGENDA CUSTOMIZADA ---
+window.toggleDataset = function(index) {
+    if (!window.mainChartInst) return;
+    
+    const chart = window.mainChartInst;
+    const meta = chart.getDatasetMeta(index);
+    
+    // Esconde ou mostra a barra no gráfico
+    meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+    chart.update();
+
+    // Risca ou desrisca o botão no HTML
+    const items = document.querySelectorAll('.custom-legend-item');
+    if (items[index]) {
+        items[index].classList.toggle('hidden');
+    }
+};
